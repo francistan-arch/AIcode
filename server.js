@@ -27,7 +27,7 @@ let currentConfig = {
   gatewayType: process.env.GATEWAY_TYPE || '2c2p-paco',
   merchantID: process.env.PACO_PARTNER_ID || process.env['2C2P_MERCHANT_ID'] || 'PACO_PARTNER_DEMO',
   apiUrl: process.env['2C2P_API_URL'] || 'https://sandbox-pgw.2c2p.com/payment/4.3/paymentToken',
-  pacoApiUrl: process.env.PACO_API_URL || 'https://core.demo-paco.2c2p.com/paco/v1/prepaymentui',
+  pacoApiUrl: process.env.PACO_API_URL || 'https://core.demo-paco.2c2p.com/paco/v1/hpp/session',
   mode: process.env.MODE || 'simulator'
 };
 
@@ -91,8 +91,8 @@ app.post('/api/config', (req, res) => {
   res.json({ success: true, message: 'Configuration updated successfully', config: currentConfig });
 });
 
-// 2. PACO `prepaymentui` Request API (RS256 Signed)
-app.post('/api/paco/prepaymentui', async (req, res) => {
+// 2. Checkout API - Silently handles RS256 PEM signed request and returns direct redirect URL
+app.post('/api/checkout', async (req, res) => {
   try {
     const { items, customerName, customerEmail, currencyCode = 'MYR' } = req.body;
 
@@ -106,7 +106,7 @@ app.post('/api/paco/prepaymentui', async (req, res) => {
     const baseUrl = `${req.protocol}://${req.get('host')}`;
 
     const paco = getPacoInstance();
-    const result = await paco.requestPrePaymentUi({
+    const result = await paco.createPaymentSession({
       invoiceNo,
       description,
       amount: totalAmount,
@@ -124,8 +124,7 @@ app.post('/api/paco/prepaymentui', async (req, res) => {
       customerName,
       customerEmail,
       gateway: '2c2p-paco',
-      status: 'PRE_PAYMENT_UI',
-      prepaymentUiToken: result.prepaymentUiToken,
+      status: 'PENDING_PAYMENT',
       webPaymentUrl: result.webPaymentUrl,
       mode: result.mode,
       signatureAlgorithm: 'RS256',
@@ -135,18 +134,13 @@ app.post('/api/paco/prepaymentui', async (req, res) => {
     };
 
     orders.set(invoiceNo, newOrder);
-    if (result.prepaymentUiToken) {
-      activeTokens.set(result.prepaymentUiToken, newOrder);
-    }
 
-    logEvent('PREPAYMENT_UI_REQUEST', `PACO RS256 PrePaymentUI Requested (${invoiceNo})`, {
+    logEvent('SILENT_CHECKOUT_RS256', `2C2P PACO RS256 Silent Checkout (${invoiceNo})`, {
       gateway: '2c2p-paco',
       signatureAlgorithm: 'RS256 (RSA PEM)',
       invoiceNo,
       amount: totalAmount,
       currencyCode,
-      availablePaymentMethods: result.availablePaymentMethods,
-      prepaymentUiToken: result.prepaymentUiToken,
       webPaymentUrl: result.webPaymentUrl,
       rawRequestPayload: result.rawRequestPayload,
       requestJwt: result.requestJwt,
@@ -159,52 +153,16 @@ app.post('/api/paco/prepaymentui', async (req, res) => {
       invoiceNo,
       amount: totalAmount,
       currencyCode,
-      prepaymentUiToken: result.prepaymentUiToken,
-      availablePaymentMethods: result.availablePaymentMethods,
-      webPaymentUrl: result.webPaymentUrl,
-      rawRequestPayload: result.rawRequestPayload,
-      requestJwt: result.requestJwt,
-      responseJwt: result.responseJwt,
-      decodedResponse: result.decodedResponse
+      webPaymentUrl: result.webPaymentUrl
     });
   } catch (err) {
-    console.error('PrePaymentUI error:', err);
-    logEvent('PREPAYMENT_UI_ERROR', 'PACO PrePaymentUI Request Failed', { error: err.message });
+    console.error('Silent Checkout Error:', err);
+    logEvent('CHECKOUT_ERROR', '2C2P PACO Silent Checkout Failed', { error: err.message });
     res.status(500).json({ error: err.message });
   }
 });
 
-// 3. Checkout API
-app.post('/api/checkout', async (req, res) => {
-  try {
-    const { invoiceNo, selectedMethod = 'ALL' } = req.body;
-    let order = orders.get(invoiceNo);
-
-    if (!order) {
-      return res.status(404).json({ error: 'Order session not found' });
-    }
-
-    order.status = 'PENDING_PAYMENT';
-    order.selectedMethod = selectedMethod;
-    orders.set(invoiceNo, order);
-
-    logEvent('CHECKOUT_CONFIRMED', `PACO PrePaymentUI Confirmed (${invoiceNo})`, {
-      invoiceNo,
-      selectedMethod,
-      webPaymentUrl: order.webPaymentUrl
-    });
-
-    res.json({
-      success: true,
-      invoiceNo: order.invoiceNo,
-      webPaymentUrl: order.webPaymentUrl
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 4. Webhook Receivers
+// 3. Webhook Receiver
 app.post('/api/webhook/paco', (req, res) => {
   try {
     const rawJwt = req.body?.payload || req.body?.jwt || req.body;
@@ -215,7 +173,7 @@ app.post('/api/webhook/paco', (req, res) => {
     const pacoCode = decoded.code || 'PC-0000';
 
     logEvent('WEBHOOK_RECEIVED', `PACO RS256 Webhook Received (${invoiceNo || 'Unknown'})`, {
-      gateway: 'PACO_PREPAYMENT_UI',
+      gateway: '2c2p-paco',
       signatureAlgorithm: 'RS256',
       pacoCode,
       decodedPayload: decoded
@@ -229,7 +187,7 @@ app.post('/api/webhook/paco', (req, res) => {
       order.respCode = pacoCode;
       order.respDesc = decoded.message || codeInfo.title;
       order.transactionRef = decoded.externalReferenceId || `PACO-TXN-${Date.now()}`;
-      order.paymentChannel = 'PACO Payment Page';
+      order.paymentChannel = '2C2P Payment Page';
       order.updatedAt = new Date().toISOString();
       orders.set(invoiceNo, order);
     }
@@ -240,7 +198,7 @@ app.post('/api/webhook/paco', (req, res) => {
   }
 });
 
-// 5. Orders API
+// 4. Orders API
 app.get('/api/orders/:invoiceNo', (req, res) => {
   const { invoiceNo } = req.params;
   const order = orders.get(invoiceNo);
@@ -257,17 +215,17 @@ app.get('/api/orders', (req, res) => {
   res.json(orderList);
 });
 
-// 6. Logs API
+// 5. Logs API
 app.get('/api/logs', (req, res) => res.json(inspectorLogs));
 app.delete('/api/logs', (req, res) => {
   inspectorLogs.length = 0;
   res.json({ success: true, message: 'Logs cleared' });
 });
 
-// 7. Simulator Payment API for PACO PrePaymentUI
+// 6. Simulator Payment API
 app.get('/api/simulator/payment-info', (req, res) => {
-  const { paymentToken, invoiceNo } = req.query;
-  let order = activeTokens.get(paymentToken) || orders.get(invoiceNo);
+  const { paymentToken, invoiceNo, hppToken } = req.query;
+  let order = orders.get(invoiceNo);
   if (!order) return res.status(404).json({ error: 'Session not found' });
 
   res.json({
@@ -282,8 +240,8 @@ app.get('/api/simulator/payment-info', (req, res) => {
 
 app.post('/api/simulator/paco-submit-payment', async (req, res) => {
   try {
-    const { paymentToken, invoiceNo, pacoCode = 'PC-0000' } = req.body;
-    let order = activeTokens.get(paymentToken) || orders.get(invoiceNo);
+    const { invoiceNo, pacoCode = 'PC-0000' } = req.body;
+    let order = orders.get(invoiceNo);
     if (!order) return res.status(404).json({ error: 'PACO order session not found' });
 
     const paco = getPacoInstance();
@@ -294,7 +252,7 @@ app.post('/api/simulator/paco-submit-payment', async (req, res) => {
       amount: order.amount,
       currency: order.currencyCode,
       code: pacoCode,
-      message: pacoCode === 'PC-0000' ? 'PACO PrePaymentUI Payment Authorized' : `PACO Error ${pacoCode}`
+      message: pacoCode === 'PC-0000' ? 'PACO Payment Authorized' : `PACO Error ${pacoCode}`
     };
 
     const responseJwt = paco.signPayload(webhookPayload);
@@ -313,7 +271,7 @@ app.post('/api/simulator/paco-submit-payment', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n==================================================`);
-  console.log(`🚀 2C2P PACO RS256 PEM Key Signing Server`);
+  console.log(`🚀 2C2P PACO Silent RS256 Signed Gateway Server`);
   console.log(`🔗 Local URL: http://localhost:3000`);
   console.log(`🔑 RSA Private Key: ${PRIVATE_KEY_PATH}`);
   console.log(`🔑 RSA Public Key:  ${PUBLIC_KEY_PATH}`);
