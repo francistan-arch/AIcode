@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const { v4: uuidv4 } = require('uuid');
 const TwoC2PService = require('./lib/2c2p');
 const PacoService = require('./lib/paco');
+const { getPrivateKey, getPublicKey, PRIVATE_KEY_PATH, PUBLIC_KEY_PATH } = require('./lib/keyManager');
 
 dotenv.config();
 
@@ -25,22 +26,25 @@ const activeTokens = new Map();
 let currentConfig = {
   gatewayType: process.env.GATEWAY_TYPE || '2c2p-paco',
   merchantID: process.env.PACO_PARTNER_ID || process.env['2C2P_MERCHANT_ID'] || 'PACO_PARTNER_DEMO',
-  secretKey: process.env.PACO_SECRET_KEY || process.env['2C2P_SECRET_KEY'] || '',
   apiUrl: process.env['2C2P_API_URL'] || 'https://sandbox-pgw.2c2p.com/payment/4.3/paymentToken',
   pacoApiUrl: process.env.PACO_API_URL || 'https://core.demo-paco.2c2p.com/paco/v1/prepaymentui',
   mode: process.env.MODE || 'simulator'
 };
 
 function get2C2PInstance() {
-  return new TwoC2PService(currentConfig);
+  return new TwoC2PService({
+    ...currentConfig,
+    secretKey: process.env['2C2P_SECRET_KEY'] || '72A910E124A4B9448D3528A6D3F9514300E634A9F200A51D14187D397C11C3D6'
+  });
 }
 
 function getPacoInstance() {
   return new PacoService({
     partnerId: currentConfig.merchantID,
-    secretKey: currentConfig.secretKey,
     apiUrl: currentConfig.pacoApiUrl,
-    mode: currentConfig.mode
+    mode: currentConfig.mode,
+    privatePem: getPrivateKey(),
+    publicPem: getPublicKey()
   });
 }
 
@@ -61,12 +65,14 @@ function logEvent(type, title, details) {
 // API ROUTES
 // ----------------------------------------------------
 
-// 1. Config API
+// 1. Config & Keys API
 app.get('/api/config', (req, res) => {
   res.json({
     gatewayType: currentConfig.gatewayType,
     merchantID: currentConfig.merchantID,
-    secretKeyMasked: currentConfig.secretKey ? `${currentConfig.secretKey.substring(0, 6)}...${currentConfig.secretKey.substring(currentConfig.secretKey.length - 4)}` : '(Not Set)',
+    signatureAlgorithm: 'RS256 (RSA 2048-bit PEM)',
+    privateKeyPath: PRIVATE_KEY_PATH,
+    publicKeyPath: PUBLIC_KEY_PATH,
     apiUrl: currentConfig.apiUrl,
     pacoApiUrl: currentConfig.pacoApiUrl,
     mode: currentConfig.mode
@@ -74,10 +80,9 @@ app.get('/api/config', (req, res) => {
 });
 
 app.post('/api/config', (req, res) => {
-  const { gatewayType, merchantID, secretKey, apiUrl, pacoApiUrl, mode } = req.body;
+  const { gatewayType, merchantID, apiUrl, pacoApiUrl, mode } = req.body;
   if (gatewayType && ['2c2p-pgw', '2c2p-paco'].includes(gatewayType)) currentConfig.gatewayType = gatewayType;
   if (merchantID) currentConfig.merchantID = merchantID;
-  if (secretKey) currentConfig.secretKey = secretKey;
   if (apiUrl) currentConfig.apiUrl = apiUrl;
   if (pacoApiUrl) currentConfig.pacoApiUrl = pacoApiUrl;
   if (mode && ['simulator', 'sandbox'].includes(mode)) currentConfig.mode = mode;
@@ -86,7 +91,7 @@ app.post('/api/config', (req, res) => {
   res.json({ success: true, message: 'Configuration updated successfully', config: currentConfig });
 });
 
-// 2. PACO `prepaymentui` Request API
+// 2. PACO `prepaymentui` Request API (RS256 Signed)
 app.post('/api/paco/prepaymentui', async (req, res) => {
   try {
     const { items, customerName, customerEmail, currencyCode = 'MYR' } = req.body;
@@ -123,6 +128,7 @@ app.post('/api/paco/prepaymentui', async (req, res) => {
       prepaymentUiToken: result.prepaymentUiToken,
       webPaymentUrl: result.webPaymentUrl,
       mode: result.mode,
+      signatureAlgorithm: 'RS256',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       events: []
@@ -133,8 +139,9 @@ app.post('/api/paco/prepaymentui', async (req, res) => {
       activeTokens.set(result.prepaymentUiToken, newOrder);
     }
 
-    logEvent('PREPAYMENT_UI_REQUEST', `PACO PrePaymentUI Requested (${invoiceNo})`, {
+    logEvent('PREPAYMENT_UI_REQUEST', `PACO RS256 PrePaymentUI Requested (${invoiceNo})`, {
       gateway: '2c2p-paco',
+      signatureAlgorithm: 'RS256 (RSA PEM)',
       invoiceNo,
       amount: totalAmount,
       currencyCode,
@@ -167,7 +174,7 @@ app.post('/api/paco/prepaymentui', async (req, res) => {
   }
 });
 
-// 3. Checkout API - Final Confirmation & Redirect
+// 3. Checkout API
 app.post('/api/checkout', async (req, res) => {
   try {
     const { invoiceNo, selectedMethod = 'ALL' } = req.body;
@@ -198,37 +205,6 @@ app.post('/api/checkout', async (req, res) => {
 });
 
 // 4. Webhook Receivers
-app.post('/api/webhook/2c2p', (req, res) => {
-  try {
-    const rawJwt = req.body?.payload || req.body?.jwt || req.body;
-    const twoC2P = get2C2PInstance();
-    const decoded = typeof rawJwt === 'string' ? twoC2P.verifyAndDecodeToken(rawJwt) : rawJwt;
-
-    const { invoiceNo, respCode, respDesc, transactionRef, channelCode } = decoded;
-
-    logEvent('WEBHOOK_RECEIVED', `2C2P Webhook Received (${invoiceNo || 'Unknown'})`, {
-      decodedPayload: decoded
-    });
-
-    if (invoiceNo && orders.has(invoiceNo)) {
-      const order = orders.get(invoiceNo);
-      const codeInfo = twoC2P.parseResponseCode(respCode);
-
-      order.status = codeInfo.status;
-      order.respCode = respCode;
-      order.respDesc = respDesc || codeInfo.title;
-      order.transactionRef = transactionRef || `TXN-${Date.now()}`;
-      order.paymentChannel = channelCode || 'CARD';
-      order.updatedAt = new Date().toISOString();
-      orders.set(invoiceNo, order);
-    }
-
-    res.status(200).json({ status: 'OK', invoiceNo, respCode: '0000' });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
 app.post('/api/webhook/paco', (req, res) => {
   try {
     const rawJwt = req.body?.payload || req.body?.jwt || req.body;
@@ -238,8 +214,9 @@ app.post('/api/webhook/paco', (req, res) => {
     const invoiceNo = decoded.merchantReferenceNumber || decoded.invoiceNo;
     const pacoCode = decoded.code || 'PC-0000';
 
-    logEvent('WEBHOOK_RECEIVED', `PACO Webhook Received (${invoiceNo || 'Unknown'})`, {
+    logEvent('WEBHOOK_RECEIVED', `PACO RS256 Webhook Received (${invoiceNo || 'Unknown'})`, {
       gateway: 'PACO_PREPAYMENT_UI',
+      signatureAlgorithm: 'RS256',
       pacoCode,
       decodedPayload: decoded
     });
@@ -269,14 +246,8 @@ app.get('/api/orders/:invoiceNo', (req, res) => {
   const order = orders.get(invoiceNo);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
-  let statusInfo;
-  if (order.gateway === '2c2p-paco') {
-    const paco = getPacoInstance();
-    statusInfo = paco.parsePacoCode(order.respCode || 'PC-0000');
-  } else {
-    const twoC2P = get2C2PInstance();
-    statusInfo = twoC2P.parseResponseCode(order.respCode || '0001');
-  }
+  const paco = getPacoInstance();
+  const statusInfo = paco.parsePacoCode(order.respCode || 'PC-0000');
 
   res.json({ ...order, statusInfo });
 });
@@ -342,9 +313,9 @@ app.post('/api/simulator/paco-submit-payment', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n==================================================`);
-  console.log(`🚀 2C2P PACO PrePaymentUI Gateway Integration Server`);
+  console.log(`🚀 2C2P PACO RS256 PEM Key Signing Server`);
   console.log(`🔗 Local URL: http://localhost:3000`);
-  console.log(`⚙️  Active Engine: 2C2P PACO PrePaymentUI (MYR)`);
-  console.log(`⚙️  PrePaymentUI Endpoint: ${currentConfig.pacoApiUrl}`);
+  console.log(`🔑 RSA Private Key: ${PRIVATE_KEY_PATH}`);
+  console.log(`🔑 RSA Public Key:  ${PUBLIC_KEY_PATH}`);
   console.log(`==================================================\n`);
 });
