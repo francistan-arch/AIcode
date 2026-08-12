@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Status • 2C2P Integration Demo</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .complete-card {
+      max-width: 600px;
+      margin: 4rem auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      text-align: center;
+      box-shadow: var(--shadow-main);
+    }
+    .status-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      margin: 0 auto 1.5rem;
+    }
+    .status-icon.success { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .status-icon.failed { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .status-icon.pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+
+    .details-table {
+      width: 100%;
+      margin: 1.5rem 0;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    .details-table td {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .details-table td:last-child {
+      text-align: right;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand-container">
+      <span class="brand-title">Nexus Gear Store</span>
+      <span class="badge-2c2p">2C2P Payment Complete</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="complete-card" id="statusCard">
+      <div class="status-icon pending" id="statusIcon">⏳</div>
+      <h2 class="panel-title" id="statusTitle">Verifying Payment...</h2>
+      <p class="panel-sub" id="statusDesc">Fetching official transaction status from 2C2P webhook callback.</p>
+
+      <table class="details-table" id="detailsTable" style="display: none;">
+        <tr>
+          <td style="color: var(--text-muted);">Invoice Number</td>
+          <td id="invoiceNoVal">-</td>
+        </tr>
+        <tr>
+          <td style="color: var(--text-muted);">Order Description</td>
+          <td id="orderDescVal">-</td>
+        </tr>
+        <tr>
+          <td style="color: var(--text-muted);">Amount Paid</td>
+          <td id="amountVal" style="color: #60a5fa;">-</td>
+        </tr>
+        <tr>
+          <td style="color: var(--text-muted);">2C2P Response Code</td>
+          <td id="respCodeVal"><code>-</code></td>
+        </tr>
+        <tr>
+          <td style="color: var(--text-muted);">Transaction Reference</td>
+          <td id="txnRefVal"><code>-</code></td>
+        </tr>
+        <tr>
+          <td style="color: var(--text-muted);">Payment Channel</td>
+          <td id="channelVal">-</td>
+        </tr>
+      </table>
+
+      <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+        <a href="/" class="nav-btn" style="background: var(--accent-primary); color: #fff; border: none; text-decoration: none; padding: 10px 20px;">
+          🛒 Return to Store
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const invoiceNo = urlParams.get('invoiceNo');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (invoiceNo) {
+        verifyOrder();
+      } else {
+        document.getElementById('statusTitle').innerText = 'Invalid Return URL';
+        document.getElementById('statusDesc').innerText = 'No invoice number was specified in redirect.';
+      }
+    });
+
+    async function verifyOrder() {
+      try {
+        const res = await fetch(`/api/orders/${encodeURIComponent(invoiceNo)}`);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Order not found');
+
+        const iconEl = document.getElementById('statusIcon');
+        const titleEl = document.getElementById('statusTitle');
+        const descEl = document.getElementById('statusDesc');
+
+        if (data.status === 'COMPLETED') {
+          iconEl.className = 'status-icon success';
+          iconEl.innerText = '✅';
+          titleEl.innerText = 'Payment Successful!';
+          descEl.innerText = 'Your payment was successfully authorized and completed by 2C2P.';
+        } else if (data.status === 'FAILED' || data.status === 'ERROR') {
+          iconEl.className = 'status-icon failed';
+          iconEl.innerText = '❌';
+          titleEl.innerText = 'Payment Failed or Rejected';
+          descEl.innerText = data.respDesc || 'The transaction was declined by 2C2P or issuing bank.';
+        } else if (data.status === 'CANCELLED') {
+          iconEl.className = 'status-icon failed';
+          iconEl.innerText = '🚫';
+          titleEl.innerText = 'Payment Cancelled';
+          descEl.innerText = 'The payment process was cancelled by the customer.';
+        }
+
+        document.getElementById('invoiceNoVal').innerText = data.invoiceNo;
+        document.getElementById('orderDescVal').innerText = data.description;
+        document.getElementById('amountVal').innerText = `${data.currencyCode} ${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        document.getElementById('respCodeVal').innerText = `${data.respCode || '0000'} (${data.respDesc || 'Success'})`;
+        document.getElementById('txnRefVal').innerText = data.transactionRef || 'N/A';
+        document.getElementById('channelVal').innerText = data.paymentChannel || '2C2P Hosted Channel';
+
+        document.getElementById('detailsTable').style.display = 'table';
+      } catch (err) {
+        console.error('Verify order error:', err);
+        document.getElementById('statusTitle').innerText = 'Order Status Pending';
+        document.getElementById('statusDesc').innerText = 'Unable to query order status. Check API Inspector for webhook logs.';
+      }
+    }
+  </script>
+</body>
+</html>

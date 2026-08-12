@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2C2P Hosted Payment Gateway Integration Demo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-container">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill="#ED1C24"/>
+        <path d="M8 12H24M8 16H24M8 20H18" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <span class="brand-title">Nexus Gear Store</span>
+        <span class="badge-2c2p">2C2P PGW v4.3</span>
+      </div>
+    </div>
+
+    <nav class="nav-links">
+      <button class="nav-btn active" onclick="switchPanel('store')">🛍️ Storefront</button>
+      <button class="nav-btn" onclick="switchPanel('orders')">📋 Orders & Webhooks</button>
+      <button class="nav-btn" onclick="switchPanel('inspector')">🔍 API Inspector</button>
+      <button class="nav-btn" onclick="switchPanel('guide')">📖 2C2P Integration Guide</button>
+      <button class="nav-btn cart-btn" onclick="openCart()">
+        🛒 Cart <span class="cart-badge" id="cartBadge">0</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- Gateway Mode Banner -->
+    <div class="mode-banner">
+      <div class="mode-info">
+        <div class="status-dot"></div>
+        <span>Gateway Mode: <strong id="modeText">2C2P Hosted Simulator Mode</strong></span>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">(Merchant ID: <code id="merchantIdText">JT01</code>)</span>
+      </div>
+      <button class="mode-toggle-btn" onclick="toggleMode()">⚙️ Change Config / Switch Mode</button>
+    </div>
+
+    <!-- Store Panel -->
+    <section id="panel-store" class="panel active">
+      <h2 class="panel-title">Explore Tech Gadgets</h2>
+      <p class="panel-sub">Select items to test the 2C2P Hosted Payment Page redirect flow.</p>
+
+      <div class="products-grid" id="productsGrid">
+        <!-- Dynamic products populated by JS -->
+      </div>
+    </section>
+
+    <!-- Orders Panel -->
+    <section id="panel-orders" class="panel">
+      <h2 class="panel-title">Orders & Webhook Status</h2>
+      <p class="panel-sub">Live list of orders and status updates received via 2C2P Webhooks (Backend Return URL).</p>
+      
+      <div id="ordersList" class="logs-container">
+        <!-- Dynamic orders list -->
+      </div>
+    </section>
+
+    <!-- Inspector Panel -->
+    <section id="panel-inspector" class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+          <h2 class="panel-title">Live API Inspector & Payload Debugger</h2>
+          <p class="panel-sub">Inspect signed JWTs, 2C2P Payment Token responses, and webhook signatures in real-time.</p>
+        </div>
+        <button class="nav-btn" onclick="clearLogs()">🗑️ Clear Logs</button>
+      </div>
+
+      <div id="inspectorLogs" class="logs-container">
+        <!-- Dynamic logs -->
+      </div>
+    </section>
+
+    <!-- Guide Panel -->
+    <section id="panel-guide" class="panel">
+      <h2 class="panel-title">2C2P Hosted Payment Gateway Integration Guide</h2>
+      <p class="panel-sub">Complete walkthrough of 2C2P API v4.3 Hosted Redirect Payment integration with Node.js.</p>
+
+      <div class="log-card" style="margin-bottom: 1.5rem;">
+        <h3>🔄 Sequence Flow Diagram</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">
+          How your Node.js application interacts with 2C2P Hosted Payment Page and Webhooks:
+        </p>
+        <pre class="code-block" style="color: #60a5fa;">
+1. Customer clicks "Checkout" on Merchant Frontend.
+2. Merchant Server signs payload into JWT with Secret Key (HS256).
+3. Merchant Server posts JWT to 2C2P Payment Token API (/payment/4.3/paymentToken).
+4. 2C2P returns paymentToken & webPaymentUrl (Hosted Payment Page).
+5. Customer is redirected to webPaymentUrl (Credit Card, PromptPay, E-Wallet).
+6. 2C2P sends asynchronous notification (Webhook) to Merchant backendReturnUrl.
+7. Merchant verifies Webhook JWT signature, updates order status, and returns 200 OK.
+8. 2C2P redirects Customer browser back to Merchant frontendReturnUrl.
+        </pre>
+      </div>
+
+      <div class="log-card" style="margin-bottom: 1.5rem;">
+        <h3>🔑 Step 1: Install Dependencies & Sign Request JWT</h3>
+        <pre class="code-block">
+npm install jsonwebtoken axios
+
+// lib/2c2p.js
+const jwt = require('jsonwebtoken');
+
+function generatePaymentTokenJwt(payload, secretKey) {
+  // Sign payload using HMAC SHA-256 (HS256)
+  return jwt.sign(payload, secretKey, { algorithm: 'HS256' });
+}
+        </pre>
+      </div>
+
+      <div class="log-card" style="margin-bottom: 1.5rem;">
+        <h3>🌐 Step 2: Request Payment Token & Redirect User</h3>
+        <pre class="code-block">
+const payload = {
+  merchantID: 'JT01',
+  invoiceNo: 'INV-2026-001',
+  description: 'Tech Gadget Order',
+  amount: 2500.00,
+  currencyCode: 'THB',
+  frontendReturnUrl: 'https://yourdomain.com/payment-complete',
+  backendReturnUrl: 'https://yourdomain.com/api/webhook/2c2p'
+};
+
+const tokenJwt = jwt.sign(payload, SECRET_KEY, { algorithm: 'HS256' });
+const response = await axios.post('https://sandbox-pgw.2c2p.com/payment/4.3/paymentToken', {
+  payload: tokenJwt
+});
+
+const decodedResp = jwt.verify(response.data.payload, SECRET_KEY);
+if (decodedResp.respCode === '0000') {
+  // Redirect customer to 2C2P hosted checkout page
+  res.redirect(decodedResp.webPaymentUrl);
+}
+        </pre>
+      </div>
+
+      <div class="log-card">
+        <h3>📩 Step 3: Handle Webhook Notifications (Backend Return URL)</h3>
+        <pre class="code-block">
+app.post('/api/webhook/2c2p', (req, res) => {
+  const { payload } = req.body;
+  const decoded = jwt.verify(payload, SECRET_KEY);
+
+  if (decoded.respCode === '0000') {
+    // Payment Successful! Update order in database
+    console.log(`Order ${decoded.invoiceNo} Paid! Transaction Ref: ${decoded.transactionRef}`);
+  }
+  
+  res.status(200).json({ status: 'OK' });
+});
+        </pre>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Cart Modal Drawer -->
+  <div class="modal-overlay" id="cartModal">
+    <div class="modal-drawer">
+      <div class="drawer-header">
+        <h3 class="drawer-title">Shopping Cart</h3>
+        <button class="close-btn" onclick="closeCart()">&times;</button>
+      </div>
+
+      <div class="cart-items-list" id="cartItemsList">
+        <!-- Cart items populated by JS -->
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Customer Name</label>
+        <input type="text" id="custName" value="Alex Tech" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Customer Email</label>
+        <input type="email" id="custEmail" value="alex@example.com" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+      </div>
+
+      <div class="checkout-summary">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span id="subtotalAmount">THB 0.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Processing / Gateway Fee</span>
+          <span style="color: var(--success);">FREE</span>
+        </div>
+        <div class="summary-row total">
+          <span>Total Amount</span>
+          <span id="totalAmount">THB 0.00</span>
+        </div>
+      </div>
+
+      <button class="checkout-btn" onclick="proceedToCheckout()" id="checkoutBtn">
+        🔒 Pay via 2C2P Hosted Page
+      </button>
+    </div>
+  </div>
+
+  <!-- Config Modal -->
+  <div class="modal-overlay" id="configModal">
+    <div class="modal-drawer" style="max-width: 520px;">
+      <div class="drawer-header">
+        <h3 class="drawer-title">2C2P Gateway Configuration</h3>
+        <button class="close-btn" onclick="closeConfigModal()">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Gateway Mode</label>
+        <select id="cfgMode" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+          <option value="simulator">2C2P Hosted Simulator Mode (Instant Local Testing)</option>
+          <option value="sandbox">2C2P Live Sandbox Mode (sandbox-pgw.2c2p.com)</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Merchant ID</label>
+        <input type="text" id="cfgMerchantId" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Secret Key</label>
+        <input type="password" id="cfgSecretKey" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">API Token URL</label>
+        <input type="text" id="cfgApiUrl" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+      </div>
+
+      <button class="checkout-btn" style="background: var(--accent-primary);" onclick="saveConfig()">
+        💾 Save Configuration
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>2C2P Hosted Payment Gateway Integration Demo • Node.js PGW v4.3</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
