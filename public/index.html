@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2C2P PGW & PACO Engine Integration Demo</title>
+  <title>2C2P PACO Live Gateway Integration</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
       </svg>
       <div>
         <span class="brand-title">Nexus Gear Store</span>
-        <span class="badge-2c2p" id="gatewayBadge">2C2P PGW v4.3 / PACO</span>
+        <span class="badge-2c2p" id="gatewayBadge">2C2P PACO Live Gateway</span>
       </div>
     </div>
 
@@ -25,7 +25,7 @@
       <button class="nav-btn active" onclick="switchPanel('store')">🛍️ Storefront</button>
       <button class="nav-btn" onclick="switchPanel('orders')">📋 Orders & Webhooks</button>
       <button class="nav-btn" onclick="switchPanel('inspector')">🔍 API Inspector</button>
-      <button class="nav-btn" onclick="switchPanel('guide')">📖 Gateway & PACO Guide</button>
+      <button class="nav-btn" onclick="switchPanel('guide')">📖 PACO Gateway Guide</button>
       <button class="nav-btn cart-btn" onclick="openCart()">
         🛒 Cart <span class="cart-badge" id="cartBadge">0</span>
       </button>
@@ -39,16 +39,16 @@
     <div class="mode-banner">
       <div class="mode-info">
         <div class="status-dot"></div>
-        <span>Active Gateway Engine: <strong id="gatewayText" style="color: #60a5fa;">Standard 2C2P PGW v4.3</strong></span>
-        <span style="color: var(--text-muted); font-size: 0.8rem;">(Mode: <code id="modeText">Simulator</code> | Partner ID: <code id="merchantIdText">JT01</code>)</span>
+        <span>Active Engine: <strong id="gatewayText" style="color: #34d399;">2C2P PACO Hosted Payment Page</strong></span>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">(Mode: <code id="modeText">Live PACO Sandbox</code> | Partner ID: <code id="merchantIdText">PACO_PARTNER_DEMO</code>)</span>
       </div>
-      <button class="mode-toggle-btn" onclick="toggleMode()">⚙️ Switch Gateway / Config</button>
+      <button class="mode-toggle-btn" onclick="toggleMode()">⚙️ Configure PACO Credentials</button>
     </div>
 
     <!-- Store Panel -->
     <section id="panel-store" class="panel active">
       <h2 class="panel-title">Explore Tech Gadgets</h2>
-      <p class="panel-sub">Select items to test checkout with standard 2C2P PGW or 2C2P PACO Payment Air Controller.</p>
+      <p class="panel-sub">Select items to checkout via official 2C2P PACO Hosted Payment Page.</p>
 
       <div class="products-grid" id="productsGrid">
         <!-- Dynamic products -->
@@ -58,8 +58,8 @@
     <!-- Orders Panel -->
     <section id="panel-orders" class="panel">
       <h2 class="panel-title">Orders & Webhook Status</h2>
-      <p class="panel-sub">Live status of orders processed via 2C2P PGW and 2C2P PACO webhooks.</p>
-      
+      <p class="panel-sub">Live status of orders processed via 2C2P PACO webhooks.</p>
+
       <div id="ordersList" class="logs-container">
         <!-- Dynamic orders -->
       </div>
@@ -70,7 +70,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <div>
           <h2 class="panel-title">Live API Inspector & Payload Debugger</h2>
-          <p class="panel-sub">Inspect signed JWTs, PACO routing responses, and webhook event logs.</p>
+          <p class="panel-sub">Inspect signed JWTs and actual 2C2P PACO Gateway responses.</p>
         </div>
         <button class="nav-btn" onclick="clearLogs()">🗑️ Clear Logs</button>
       </div>
@@ -82,41 +82,26 @@
 
     <!-- Guide Panel -->
     <section id="panel-guide" class="panel">
-      <h2 class="panel-title">2C2P PGW & PACO Integration Guide</h2>
-      <p class="panel-sub">Architectural walkthrough of standard 2C2P PGW v4.3 and 2C2P PACO Payment Air Controller.</p>
+      <h2 class="panel-title">2C2P PACO Gateway Integration Guide</h2>
+      <p class="panel-sub">Architectural walkthrough of actual 2C2P PACO Payment Air Controller integration.</p>
 
       <div class="log-card" style="margin-bottom: 1.5rem;">
-        <h3>✈️ 2C2P PACO (Payment Air Controller) Architecture</h3>
+        <h3>✈️ 2C2P PACO Direct Gateway API Request</h3>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">
-          PACO is 2C2P's enterprise payment orchestration engine providing smart acquirer routing, 3DS authentication, and cost optimization:
+          The backend signs the JSON payload using your PACO Secret Key (HMAC-SHA256) and posts to `https://core.demo-paco.2c2p.com/paco/v1/hpp/session`:
         </p>
         <pre class="code-block" style="color: #60a5fa;">
-// PACO Payment Request Structure (lib/paco.js)
+// PACO API Payload
 const pacoPayload = {
-  partnerId: 'PACO_DEMO_01',
-  externalReferenceId: 'PACO-REF-INV-2026-101',
-  merchantReferenceNumber: 'INV-2026-101',
-  description: 'AeroPulse Headphones',
+  partnerId: 'YOUR_PACO_PARTNER_ID',
+  externalReferenceId: 'PACO-HPP-REF-1001',
+  merchantReferenceNumber: 'INV-1001',
   amount: 2490.00,
   currency: 'THB',
-  routingPreference: {
-    smartRoutingEnabled: true,
-    costOptimization: true
-  },
-  threeDSecure: { deviceChannel: 2 }
+  paymentType: 'PACO_HOSTED_PAYMENT_PAGE',
+  returnUrl: 'https://yourstore.com/payment-complete.html',
+  notificationUrl: 'https://yourstore.com/api/webhook/paco'
 };
-        </pre>
-      </div>
-
-      <div class="log-card">
-        <h3>🚨 PACO Error Code Specifications</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">
-          PACO categorizes errors into Business Exceptions (`PC-Bxxxxxx`) and Technical System Errors (`PC-Txxxxxx`):
-        </p>
-        <pre class="code-block" style="color: #fca5a5;">
-• PC-0000 : Success / Authorized
-• PC-B00101 : Business Logic State Exception
-• PC-T050020 : Technical Routing Error (No route found for payment channel)
         </pre>
       </div>
     </section>
@@ -154,54 +139,59 @@ const pacoPayload = {
         </div>
       </div>
 
-      <button class="checkout-btn" onclick="proceedToCheckout()" id="checkoutBtn">
-        🔒 Pay via 2C2P Gateway
+      <button class="checkout-btn" onclick="proceedToCheckout()" id="checkoutBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+        🔒 Pay via Official 2C2P PACO Page
       </button>
     </div>
   </div>
 
   <!-- Config Modal -->
   <div class="modal-overlay" id="configModal">
-    <div class="modal-drawer" style="max-width: 520px;">
+    <div class="modal-drawer" style="max-width: 540px;">
       <div class="drawer-header">
-        <h3 class="drawer-title">Gateway & Engine Configuration</h3>
+        <h3 class="drawer-title">2C2P PACO Credentials & Endpoint</h3>
         <button class="close-btn" onclick="closeConfigModal()">&times;</button>
       </div>
 
       <div style="margin-bottom: 1rem;">
         <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Payment Gateway Engine</label>
         <select id="cfgGatewayType" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
-          <option value="2c2p-pgw">Standard 2C2P PGW v4.3 Hosted Page</option>
           <option value="2c2p-paco">2C2P PACO (Payment Air Controller Engine)</option>
+          <option value="2c2p-pgw">Standard 2C2P PGW v4.3 Hosted Page</option>
         </select>
       </div>
 
       <div style="margin-bottom: 1rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Mode</label>
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Environment Mode</label>
         <select id="cfgMode" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
-          <option value="simulator">Hosted Simulator Mode (Instant Local Test)</option>
-          <option value="sandbox">Live Sandbox Mode</option>
+          <option value="sandbox">Live 2C2P PACO Sandbox / Gateway API</option>
+          <option value="simulator">Internal Local Simulator Mode</option>
         </select>
       </div>
 
       <div style="margin-bottom: 1rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Merchant / Partner ID</label>
-        <input type="text" id="cfgMerchantId" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">PACO Partner / Merchant ID</label>
+        <input type="text" id="cfgMerchantId" placeholder="e.g. PACO_PARTNER_123" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">PACO Secret Key (HMAC Key)</label>
+        <input type="password" id="cfgSecretKey" placeholder="Enter your 2C2P PACO Secret Key" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
       </div>
 
       <div style="margin-bottom: 1.5rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Secret Key</label>
-        <input type="password" id="cfgSecretKey" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">PACO Gateway API URL</label>
+        <input type="text" id="cfgPacoApiUrl" value="https://core.demo-paco.2c2p.com/paco/v1/hpp/session" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
       </div>
 
       <button class="checkout-btn" style="background: var(--accent-primary);" onclick="saveConfig()">
-        💾 Save Configuration
+        💾 Save PACO Credentials
       </button>
     </div>
   </div>
 
   <footer>
-    <p>2C2P Hosted Payment Gateway & PACO Engine Integration Demo</p>
+    <p>2C2P PACO Payment Air Controller Live Gateway Integration Demo</p>
   </footer>
 
   <script src="app.js"></script>

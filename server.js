@@ -24,11 +24,11 @@ const activeTokens = new Map();
 
 let currentConfig = {
   gatewayType: process.env.GATEWAY_TYPE || '2c2p-paco', // PACO Hosted Payment Page as default
-  merchantID: process.env['2C2P_MERCHANT_ID'] || 'PACO_AIR_DEMO',
-  secretKey: process.env['2C2P_SECRET_KEY'] || 'PACO_SECRET_KEY_72A910E124A4B9448D3528A6D3F9514300E634A9F200A51D14187D397C11C3D6',
+  merchantID: process.env.PACO_PARTNER_ID || process.env['2C2P_MERCHANT_ID'] || 'PACO_PARTNER_DEMO',
+  secretKey: process.env.PACO_SECRET_KEY || process.env['2C2P_SECRET_KEY'] || '',
   apiUrl: process.env['2C2P_API_URL'] || 'https://sandbox-pgw.2c2p.com/payment/4.3/paymentToken',
-  pacoApiUrl: process.env['PACO_API_URL'] || 'https://core.demo-paco.2c2p.com/paco/v1/hpp/session',
-  mode: process.env.MODE || 'simulator'
+  pacoApiUrl: process.env.PACO_API_URL || 'https://core.demo-paco.2c2p.com/paco/v1/hpp/session',
+  mode: process.env.MODE || 'sandbox' // Direct Actual PACO Gateway mode
 };
 
 function get2C2PInstance() {
@@ -66,7 +66,7 @@ app.get('/api/config', (req, res) => {
   res.json({
     gatewayType: currentConfig.gatewayType,
     merchantID: currentConfig.merchantID,
-    secretKeyMasked: currentConfig.secretKey ? `${currentConfig.secretKey.substring(0, 6)}...${currentConfig.secretKey.substring(currentConfig.secretKey.length - 4)}` : '',
+    secretKeyMasked: currentConfig.secretKey ? `${currentConfig.secretKey.substring(0, 6)}...${currentConfig.secretKey.substring(currentConfig.secretKey.length - 4)}` : '(Not Set)',
     apiUrl: currentConfig.apiUrl,
     pacoApiUrl: currentConfig.pacoApiUrl,
     mode: currentConfig.mode
@@ -86,7 +86,7 @@ app.post('/api/config', (req, res) => {
   res.json({ success: true, message: 'Configuration updated successfully', config: currentConfig });
 });
 
-// 2. Checkout API - Generates PACO Hosted Payment Page Session
+// 2. Checkout API - Requests session directly from actual 2C2P PACO Gateway
 app.post('/api/checkout', async (req, res) => {
   try {
     const { items, customerName, customerEmail, currencyCode = 'THB' } = req.body;
@@ -213,7 +213,7 @@ app.post('/api/webhook/2c2p', (req, res) => {
   }
 });
 
-// 4. Webhook Receiver for 2C2P PACO Engine
+// 4. Webhook Receiver for Actual 2C2P PACO Gateway
 app.post('/api/webhook/paco', (req, res) => {
   try {
     const rawJwt = req.body?.payload || req.body?.jwt || req.body;
@@ -223,7 +223,7 @@ app.post('/api/webhook/paco', (req, res) => {
     const invoiceNo = decoded.merchantReferenceNumber || decoded.invoiceNo;
     const pacoCode = decoded.code || 'PC-0000';
 
-    logEvent('WEBHOOK_RECEIVED', `PACO HPP Webhook Received (${invoiceNo || 'Unknown'})`, {
+    logEvent('WEBHOOK_RECEIVED', `PACO Webhook Received (${invoiceNo || 'Unknown'})`, {
       gateway: 'PACO_HPP',
       pacoCode,
       decodedPayload: decoded
@@ -237,7 +237,7 @@ app.post('/api/webhook/paco', (req, res) => {
       order.respCode = pacoCode;
       order.respDesc = decoded.message || codeInfo.title;
       order.transactionRef = decoded.externalReferenceId || `PACO-TXN-${Date.now()}`;
-      order.paymentChannel = 'PACO Hosted Page';
+      order.paymentChannel = decoded.paymentChannel || 'PACO Hosted Page';
       order.updatedAt = new Date().toISOString();
       orders.set(invoiceNo, order);
     }
@@ -278,91 +278,12 @@ app.delete('/api/logs', (req, res) => {
   res.json({ success: true, message: 'Logs cleared' });
 });
 
-// 7. Simulator Payment API for PACO Hosted Page
-app.get('/api/simulator/payment-info', (req, res) => {
-  const { paymentToken, invoiceNo } = req.query;
-  let order = activeTokens.get(paymentToken) || orders.get(invoiceNo);
-  if (!order) return res.status(404).json({ error: 'Session not found' });
-
-  res.json({
-    merchantID: currentConfig.merchantID,
-    invoiceNo: order.invoiceNo,
-    description: order.description,
-    amount: order.amount,
-    currencyCode: order.currencyCode,
-    gateway: order.gateway
-  });
-});
-
-app.post('/api/simulator/submit-payment', async (req, res) => {
-  try {
-    const { paymentToken, invoiceNo, outcome = 'SUCCESS' } = req.body;
-    let order = activeTokens.get(paymentToken) || orders.get(invoiceNo);
-    if (!order) return res.status(404).json({ error: 'Order session not found' });
-
-    const twoC2P = get2C2PInstance();
-    const respCode = outcome === 'SUCCESS' ? '0000' : '2000';
-
-    const webhookPayload = {
-      merchantID: currentConfig.merchantID,
-      invoiceNo: order.invoiceNo,
-      amount: order.amount,
-      currencyCode: order.currencyCode,
-      respCode,
-      respDesc: outcome === 'SUCCESS' ? 'Success' : 'Failed',
-      transactionRef: `2C2P-SIM-${Date.now()}`
-    };
-
-    const responseJwt = twoC2P.signPayload(webhookPayload);
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-    axios.post(`${baseUrl}/api/webhook/2c2p`, { payload: responseJwt }).catch(() => {});
-
-    res.json({
-      success: true,
-      returnUrl: `${baseUrl}/payment-complete.html?invoiceNo=${encodeURIComponent(order.invoiceNo)}&respCode=${respCode}`
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/simulator/paco-submit-payment', async (req, res) => {
-  try {
-    const { paymentToken, invoiceNo, pacoCode = 'PC-0000' } = req.body;
-    let order = activeTokens.get(paymentToken) || orders.get(invoiceNo);
-    if (!order) return res.status(404).json({ error: 'PACO order session not found' });
-
-    const paco = getPacoInstance();
-    const webhookPayload = {
-      partnerId: currentConfig.merchantID,
-      merchantReferenceNumber: order.invoiceNo,
-      externalReferenceId: `PACO-HPP-TXN-${Date.now()}`,
-      amount: order.amount,
-      currency: order.currencyCode,
-      code: pacoCode,
-      message: pacoCode === 'PC-0000' ? 'PACO Hosted Payment Authorized' : `PACO Error ${pacoCode}`
-    };
-
-    const responseJwt = paco.signPayload(webhookPayload);
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-    axios.post(`${baseUrl}/api/webhook/paco`, { payload: responseJwt }).catch(() => {});
-
-    res.json({
-      success: true,
-      returnUrl: `${baseUrl}/payment-complete.html?invoiceNo=${encodeURIComponent(order.invoiceNo)}&pacoCode=${pacoCode}`
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 app.listen(PORT, () => {
   console.log(`\n==================================================`);
-  console.log(`🚀 2C2P PACO Hosted Payment Page Demo Server`);
+  console.log(`🚀 2C2P PACO Gateway Live Integration Server`);
   console.log(`🔗 Local URL: http://localhost:${PORT}`);
   console.log(`⚙️  Active Engine: 2C2P PACO HOSTED PAYMENT PAGE`);
+  console.log(`⚙️  PACO Endpoint: ${currentConfig.pacoApiUrl}`);
   console.log(`⚙️  Mode: ${currentConfig.mode.toUpperCase()}`);
   console.log(`==================================================\n`);
 });

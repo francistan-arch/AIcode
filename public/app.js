@@ -10,9 +10,9 @@ let cart = [
 ];
 
 let currentConfig = {
-  gatewayType: '2c2p-pgw',
-  merchantID: 'JT01',
-  mode: 'simulator'
+  gatewayType: '2c2p-paco',
+  merchantID: 'PACO_PARTNER_DEMO',
+  mode: 'sandbox'
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -114,7 +114,7 @@ async function proceedToCheckout() {
 
   const btn = document.getElementById('checkoutBtn');
   btn.disabled = true;
-  btn.innerHTML = `⏳ Initializing ${currentConfig.gatewayType === '2c2p-paco' ? 'PACO Engine' : '2C2P Hosted Page'}...`;
+  btn.innerHTML = `⏳ Redirecting to 2C2P PACO Gateway...`;
 
   const custName = document.getElementById('custName').value;
   const custEmail = document.getElementById('custEmail').value;
@@ -136,9 +136,9 @@ async function proceedToCheckout() {
 
     window.location.href = data.webPaymentUrl;
   } catch (err) {
-    alert(`Checkout Error: ${err.message}`);
+    alert(`2C2P PACO Checkout Error: ${err.message}`);
     btn.disabled = false;
-    btn.innerHTML = '🔒 Pay via 2C2P Gateway';
+    btn.innerHTML = '🔒 Pay via Official 2C2P PACO Page';
   }
 }
 
@@ -150,16 +150,17 @@ async function fetchConfig() {
 
     const isPaco = data.gatewayType === '2c2p-paco';
     document.getElementById('gatewayText').innerText = isPaco 
-      ? '2C2P PACO (Payment Air Controller Engine)' 
+      ? '2C2P PACO Hosted Payment Page' 
       : 'Standard 2C2P PGW v4.3';
     document.getElementById('gatewayText').style.color = isPaco ? '#34d399' : '#60a5fa';
 
     document.getElementById('merchantIdText').innerText = data.merchantID;
-    document.getElementById('modeText').innerText = data.mode === 'simulator' ? 'Simulator' : 'Live Sandbox';
+    document.getElementById('modeText').innerText = data.mode === 'sandbox' ? 'Live PACO Sandbox / API' : 'Internal Simulator';
 
     document.getElementById('cfgGatewayType').value = data.gatewayType;
     document.getElementById('cfgMerchantId').value = data.merchantID;
     document.getElementById('cfgMode').value = data.mode;
+    if (data.pacoApiUrl) document.getElementById('cfgPacoApiUrl').value = data.pacoApiUrl;
   } catch (e) {
     console.error('Failed to fetch config:', e);
   }
@@ -177,16 +178,17 @@ async function saveConfig() {
   const gatewayType = document.getElementById('cfgGatewayType').value;
   const merchantID = document.getElementById('cfgMerchantId').value;
   const secretKey = document.getElementById('cfgSecretKey').value;
+  const pacoApiUrl = document.getElementById('cfgPacoApiUrl').value;
   const mode = document.getElementById('cfgMode').value;
 
   try {
     const res = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gatewayType, merchantID, secretKey: secretKey || undefined, mode })
+      body: JSON.stringify({ gatewayType, merchantID, secretKey: secretKey || undefined, pacoApiUrl, mode })
     });
     if (res.ok) {
-      alert('Gateway & PACO Engine Configuration Saved!');
+      alert('PACO Gateway Credentials Saved!');
       closeConfigModal();
       fetchConfig();
     }
@@ -231,7 +233,7 @@ async function fetchOrders() {
             <div><strong>Amount:</strong> THB ${o.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div><strong>Customer:</strong> ${o.customerName || 'N/A'}</div>
             <div><strong>Txn Ref:</strong> <code>${o.transactionRef || 'Pending'}</code></div>
-            <div><strong>Channel:</strong> ${o.paymentChannel || 'Auto Route'}</div>
+            <div><strong>Channel:</strong> ${o.paymentChannel || '2C2P PACO Page'}</div>
           </div>
         </div>
       `;
