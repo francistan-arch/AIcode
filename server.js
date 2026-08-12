@@ -26,7 +26,7 @@ const activeTokens = new Map();
 let currentConfig = {
   gatewayType: process.env.GATEWAY_TYPE || '2c2p-paco',
   merchantID: process.env.PACO_PARTNER_ID || process.env['2C2P_MERCHANT_ID'] || 'PACO_PARTNER_DEMO',
-  apiUrl: process.env['2C2P_API_URL'] || 'https://sandbox-pgw.2c2p.com/payment/4.3/paymentToken',
+  apiUrl: process.env['2C2P_API_URL'] || 'https://demo2.2c2p.com/2C2PFrontEnd/Payment/4.3/paymentToken',
   pacoApiUrl: process.env.PACO_API_URL || 'https://core.demo-paco.2c2p.com/paco/v1/hpp/session',
   mode: process.env.MODE || 'simulator'
 };
