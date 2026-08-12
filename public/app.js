@@ -12,8 +12,11 @@ let cart = [
 let currentConfig = {
   gatewayType: '2c2p-paco',
   merchantID: 'PACO_PARTNER_DEMO',
-  mode: 'sandbox'
+  mode: 'simulator'
 };
+
+let activePreUiSession = null;
+let selectedPaymentChannel = 'ALL';
 
 document.addEventListener('DOMContentLoaded', () => {
   renderProducts();
@@ -106,7 +109,7 @@ function closeCart() {
   document.getElementById('cartModal').classList.remove('active');
 }
 
-async function proceedToCheckout() {
+async function requestPacoPrePaymentUi() {
   if (cart.length === 0) {
     alert('Please add at least one item to cart before checkout.');
     return;
@@ -114,13 +117,13 @@ async function proceedToCheckout() {
 
   const btn = document.getElementById('checkoutBtn');
   btn.disabled = true;
-  btn.innerHTML = `⏳ Redirecting to 2C2P PACO Gateway...`;
+  btn.innerHTML = `⏳ Calling /paco/v1/prepaymentui...`;
 
   const custName = document.getElementById('custName').value;
   const custEmail = document.getElementById('custEmail').value;
 
   try {
-    const res = await fetch('/api/checkout', {
+    const res = await fetch('/api/paco/prepaymentui', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -132,13 +135,67 @@ async function proceedToCheckout() {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Checkout creation failed');
+    if (!res.ok) throw new Error(data.error || 'PrePaymentUI request failed');
+
+    activePreUiSession = data;
+    closeCart();
+    openPrepaymentUiModal(data);
+  } catch (err) {
+    alert(`2C2P PACO PrePaymentUI Error: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Request PACO PrePaymentUI';
+  }
+}
+
+function openPrepaymentUiModal(data) {
+  document.getElementById('preUiInvoice').innerText = data.invoiceNo;
+  document.getElementById('preUiAmount').innerText = `${data.currencyCode} ${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
+  const channelsContainer = document.getElementById('preUiChannelsList');
+  channelsContainer.innerHTML = (data.availablePaymentMethods || []).map((m, idx) => `
+    <div class="payment-option-card ${idx === 0 ? 'selected' : ''}" onclick="selectChannel('${m.code}', this)">
+      <span style="font-size: 1.2rem;">${m.icon || '💳'}</span>
+      <div style="flex: 1;">
+        <div style="font-weight: 700; color: #fff; font-size: 0.9rem;">${m.name}</div>
+        <div style="font-size: 0.75rem; color: #94a3b8;">PACO Smart Route Enabled</div>
+      </div>
+      <input type="radio" name="pacoChannel" ${idx === 0 ? 'checked' : ''}>
+    </div>
+  `).join('');
+
+  document.getElementById('prepaymentUiModal').classList.add('active');
+}
+
+function selectChannel(code, element) {
+  selectedPaymentChannel = code;
+  document.querySelectorAll('.payment-option-card').forEach(el => el.classList.remove('selected'));
+  element.classList.add('selected');
+}
+
+function closePrepaymentUiModal() {
+  document.getElementById('prepaymentUiModal').classList.remove('active');
+}
+
+async function confirmAndRedirectToPaco() {
+  if (!activePreUiSession) return;
+
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        invoiceNo: activePreUiSession.invoiceNo,
+        selectedMethod: selectedPaymentChannel
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Confirmation failed');
 
     window.location.href = data.webPaymentUrl;
   } catch (err) {
-    alert(`2C2P PACO Checkout Error: ${err.message}`);
-    btn.disabled = false;
-    btn.innerHTML = '🔒 Pay via Official 2C2P PACO Page';
+    alert('Redirect error: ' + err.message);
   }
 }
 
@@ -148,16 +205,9 @@ async function fetchConfig() {
     const data = await res.json();
     currentConfig = data;
 
-    const isPaco = data.gatewayType === '2c2p-paco';
-    document.getElementById('gatewayText').innerText = isPaco 
-      ? '2C2P PACO Hosted Payment Page' 
-      : 'Standard 2C2P PGW v4.3';
-    document.getElementById('gatewayText').style.color = isPaco ? '#34d399' : '#60a5fa';
-
     document.getElementById('merchantIdText').innerText = data.merchantID;
-    document.getElementById('modeText').innerText = data.mode === 'sandbox' ? 'Live PACO Sandbox / API' : 'Internal Simulator';
+    document.getElementById('modeText').innerText = data.mode === 'sandbox' ? 'Live PACO Sandbox' : 'Local Simulator';
 
-    document.getElementById('cfgGatewayType').value = data.gatewayType;
     document.getElementById('cfgMerchantId').value = data.merchantID;
     document.getElementById('cfgMode').value = data.mode;
     if (data.pacoApiUrl) document.getElementById('cfgPacoApiUrl').value = data.pacoApiUrl;
@@ -175,7 +225,6 @@ function closeConfigModal() {
 }
 
 async function saveConfig() {
-  const gatewayType = document.getElementById('cfgGatewayType').value;
   const merchantID = document.getElementById('cfgMerchantId').value;
   const secretKey = document.getElementById('cfgSecretKey').value;
   const pacoApiUrl = document.getElementById('cfgPacoApiUrl').value;
@@ -185,10 +234,10 @@ async function saveConfig() {
     const res = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gatewayType, merchantID, secretKey: secretKey || undefined, pacoApiUrl, mode })
+      body: JSON.stringify({ gatewayType: '2c2p-paco', merchantID, secretKey: secretKey || undefined, pacoApiUrl, mode })
     });
     if (res.ok) {
-      alert('PACO Gateway Credentials Saved!');
+      alert('PrePaymentUI Credentials Saved!');
       closeConfigModal();
       fetchConfig();
     }
@@ -204,7 +253,7 @@ async function fetchOrders() {
     const container = document.getElementById('ordersList');
 
     if (!orders || orders.length === 0) {
-      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No checkout orders created yet.</div>`;
+      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No orders initialized yet.</div>`;
       return;
     }
 
@@ -213,15 +262,13 @@ async function fetchOrders() {
       if (o.status === 'COMPLETED') statusColor = 'var(--success)';
       if (o.status === 'FAILED' || o.status === 'ERROR') statusColor = 'var(--danger)';
 
-      const isPaco = o.gateway === '2c2p-paco';
-
       return `
         <div class="log-card">
           <div class="log-header">
             <div>
               <span style="font-weight: 700; font-size: 1rem;">${o.invoiceNo}</span>
-              <span style="font-size: 0.75rem; background: ${isPaco ? '#059669' : '#2563eb'}; color: #fff; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">
-                ${isPaco ? '2C2P PACO' : '2C2P PGW'}
+              <span style="font-size: 0.75rem; background: #0284c7; color: #fff; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">
+                2C2P PACO PrePaymentUI
               </span>
             </div>
             <span style="background: ${statusColor}22; color: ${statusColor}; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; text-transform: uppercase;">
@@ -233,7 +280,7 @@ async function fetchOrders() {
             <div><strong>Amount:</strong> THB ${o.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div><strong>Customer:</strong> ${o.customerName || 'N/A'}</div>
             <div><strong>Txn Ref:</strong> <code>${o.transactionRef || 'Pending'}</code></div>
-            <div><strong>Channel:</strong> ${o.paymentChannel || '2C2P PACO Page'}</div>
+            <div><strong>Channel:</strong> ${o.paymentChannel || 'PrePaymentUI Selected'}</div>
           </div>
         </div>
       `;
