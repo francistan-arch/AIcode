@@ -117,7 +117,7 @@ async function requestPacoPrePaymentUi() {
 
   const btn = document.getElementById('checkoutBtn');
   btn.disabled = true;
-  btn.innerHTML = `⏳ Calling /paco/v1/prepaymentui...`;
+  btn.innerHTML = `⏳ Processing Checkout...`;
 
   const custName = document.getElementById('custName').value;
   const custEmail = document.getElementById('custEmail').value;
@@ -135,16 +135,16 @@ async function requestPacoPrePaymentUi() {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'PrePaymentUI request failed');
+    if (!res.ok) throw new Error(data.error || 'Checkout request failed');
 
     activePreUiSession = data;
     closeCart();
     openPrepaymentUiModal(data);
   } catch (err) {
-    alert(`2C2P PACO PrePaymentUI Error: ${err.message}`);
+    alert(`Checkout Error: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '⚡ Request PACO PrePaymentUI';
+    btn.innerHTML = '🔒 Proceed to Checkout';
   }
 }
 
@@ -158,7 +158,7 @@ function openPrepaymentUiModal(data) {
       <span style="font-size: 1.2rem;">${m.icon || '💳'}</span>
       <div style="flex: 1;">
         <div style="font-weight: 700; color: #fff; font-size: 0.9rem;">${m.name}</div>
-        <div style="font-size: 0.75rem; color: #94a3b8;">PACO Smart Route Enabled</div>
+        <div style="font-size: 0.75rem; color: #94a3b8;">2C2P Instant Authorization</div>
       </div>
       <input type="radio" name="pacoChannel" ${idx === 0 ? 'checked' : ''}>
     </div>
@@ -226,7 +226,6 @@ function closeConfigModal() {
 
 async function saveConfig() {
   const merchantID = document.getElementById('cfgMerchantId').value;
-  const secretKey = document.getElementById('cfgSecretKey').value;
   const pacoApiUrl = document.getElementById('cfgPacoApiUrl').value;
   const mode = document.getElementById('cfgMode').value;
 
@@ -234,10 +233,10 @@ async function saveConfig() {
     const res = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gatewayType: '2c2p-paco', merchantID, secretKey: secretKey || undefined, pacoApiUrl, mode })
+      body: JSON.stringify({ gatewayType: '2c2p-paco', merchantID, pacoApiUrl, mode })
     });
     if (res.ok) {
-      alert('PrePaymentUI Credentials Saved!');
+      alert('Gateway Settings Saved!');
       closeConfigModal();
       fetchConfig();
     }
@@ -268,7 +267,7 @@ async function fetchOrders() {
             <div>
               <span style="font-weight: 700; font-size: 1rem;">${o.invoiceNo}</span>
               <span style="font-size: 0.75rem; background: #0284c7; color: #fff; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">
-                2C2P PACO PrePaymentUI
+                2C2P PACO Gateway
               </span>
             </div>
             <span style="background: ${statusColor}22; color: ${statusColor}; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; text-transform: uppercase;">
@@ -280,7 +279,7 @@ async function fetchOrders() {
             <div><strong>Amount:</strong> MYR ${o.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div><strong>Customer:</strong> ${o.customerName || 'N/A'}</div>
             <div><strong>Txn Ref:</strong> <code>${o.transactionRef || 'Pending'}</code></div>
-            <div><strong>Channel:</strong> ${o.paymentChannel || 'PrePaymentUI Selected'}</div>
+            <div><strong>Channel:</strong> ${o.paymentChannel || '2C2P PACO Page'}</div>
           </div>
         </div>
       `;

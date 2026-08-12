@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2C2P PACO PrePaymentUI Integration Demo</title>
+  <title>Nexus Gear Store • 2C2P Secure Checkout</title>
   <link rel="stylesheet" href="styles.css">
   <style>
     .prepayment-box {
@@ -42,7 +42,7 @@
       </svg>
       <div>
         <span class="brand-title">Nexus Gear Store</span>
-        <span class="badge-2c2p" id="gatewayBadge">2C2P PACO PrePaymentUI</span>
+        <span class="badge-2c2p" id="gatewayBadge">2C2P Secure Gateway</span>
       </div>
     </div>
 
@@ -50,7 +50,7 @@
       <button class="nav-btn active" onclick="switchPanel('store')">🛍️ Storefront</button>
       <button class="nav-btn" onclick="switchPanel('orders')">📋 Orders & Webhooks</button>
       <button class="nav-btn" onclick="switchPanel('inspector')">🔍 API Inspector</button>
-      <button class="nav-btn" onclick="switchPanel('guide')">📖 PrePaymentUI Guide</button>
+      <button class="nav-btn" onclick="switchPanel('guide')">📖 Gateway Guide</button>
       <button class="nav-btn cart-btn" onclick="openCart()">
         🛒 Cart <span class="cart-badge" id="cartBadge">0</span>
       </button>
@@ -64,16 +64,16 @@
     <div class="mode-banner">
       <div class="mode-info">
         <div class="status-dot"></div>
-        <span>Active Engine: <strong id="gatewayText" style="color: #38bdf8;">2C2P PACO PrePaymentUI</strong></span>
-        <span style="color: var(--text-muted); font-size: 0.8rem;">(Mode: <code id="modeText">PrePaymentUI Enabled</code> | Partner ID: <code id="merchantIdText">PACO_PARTNER_DEMO</code>)</span>
+        <span>Active Gateway: <strong id="gatewayText" style="color: #38bdf8;">2C2P PACO Engine</strong></span>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">(Mode: <code id="modeText">Secure Mode</code> | Partner ID: <code id="merchantIdText">PACO_PARTNER_DEMO</code>)</span>
       </div>
-      <button class="mode-toggle-btn" onclick="toggleMode()">⚙️ Configure Credentials</button>
+      <button class="mode-toggle-btn" onclick="toggleMode()">⚙️ Gateway Settings</button>
     </div>
 
     <!-- Store Panel -->
     <section id="panel-store" class="panel active">
       <h2 class="panel-title">Explore Tech Gadgets</h2>
-      <p class="panel-sub">Select items to test 2C2P PACO PrePaymentUI review before payment page redirect.</p>
+      <p class="panel-sub">Select items and proceed to secure checkout.</p>
 
       <div class="products-grid" id="productsGrid">
         <!-- Dynamic products -->
@@ -83,7 +83,7 @@
     <!-- Orders Panel -->
     <section id="panel-orders" class="panel">
       <h2 class="panel-title">Orders & Webhook Status</h2>
-      <p class="panel-sub">Live status of orders initialized via 2C2P PACO PrePaymentUI.</p>
+      <p class="panel-sub">Live status of orders processed via 2C2P webhooks.</p>
 
       <div id="ordersList" class="logs-container">
         <!-- Dynamic orders -->
@@ -95,7 +95,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <div>
           <h2 class="panel-title">Live API Inspector & Payload Debugger</h2>
-          <p class="panel-sub">Inspect signed JWT payloads for `/paco/v1/prepaymentui`.</p>
+          <p class="panel-sub">Inspect signed RS256 JWT payloads and response logs.</p>
         </div>
         <button class="nav-btn" onclick="clearLogs()">🗑️ Clear Logs</button>
       </div>
@@ -107,31 +107,30 @@
 
     <!-- Guide Panel -->
     <section id="panel-guide" class="panel">
-      <h2 class="panel-title">2C2P PACO PrePaymentUI Integration Guide</h2>
-      <p class="panel-sub">Architectural walkthrough of requesting `/paco/v1/prepaymentui` before redirecting.</p>
+      <h2 class="panel-title">2C2P PACO Gateway Integration Guide</h2>
+      <p class="panel-sub">Architectural walkthrough of secure 2C2P PACO checkout flows.</p>
 
       <div class="log-card" style="margin-bottom: 1.5rem;">
-        <h3>⚡ Step 1: Request `/paco/v1/prepaymentui`</h3>
+        <h3>⚡ Step 1: Pre-Payment Channel Metadata</h3>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">
-          When customer initiates checkout, call PACO's `prepaymentui` endpoint to retrieve available payment channels and routing options:
+          When customer initiates checkout, the backend retrieves available payment channels and smart routing options:
         </p>
         <pre class="code-block" style="color: #38bdf8;">
-// POST /paco/v1/prepaymentui Payload
+// POST /paco/v1/prepaymentui Payload (RS256 Signed)
 const preUiPayload = {
   partnerId: 'PACO_PARTNER_DEMO',
-  externalReferenceId: 'PACO-PREUI-REF-1001',
+  externalReferenceId: 'PACO-REF-1001',
   merchantReferenceNumber: 'INV-1001',
-  amount: 2490.00,
-  currency: 'THB',
-  requestType: 'PRE_PAYMENT_UI'
+  amount: 349.00,
+  currency: 'MYR'
 };
         </pre>
       </div>
 
       <div class="log-card">
-        <h3>🚀 Step 2: Show PrePaymentUI & Redirect</h3>
+        <h3>🚀 Step 2: Payment Selection & Redirect</h3>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">
-          Display available channels returned by `prepaymentui` in a pre-payment review modal before redirecting the customer to `webPaymentUrl`.
+          Presents payment options in a clean review modal before redirecting the customer to the payment page.
         </p>
       </div>
     </section>
@@ -161,16 +160,16 @@ const preUiPayload = {
       <div class="checkout-summary">
         <div class="summary-row">
           <span>Subtotal</span>
-          <span id="subtotalAmount">THB 0.00</span>
+          <span id="subtotalAmount">MYR 0.00</span>
         </div>
         <div class="summary-row total">
           <span>Total Amount</span>
-          <span id="totalAmount">THB 0.00</span>
+          <span id="totalAmount">MYR 0.00</span>
         </div>
       </div>
 
-      <button class="checkout-btn" onclick="requestPacoPrePaymentUi()" id="checkoutBtn" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
-        ⚡ Request PACO PrePaymentUI
+      <button class="checkout-btn" onclick="requestPacoPrePaymentUi()" id="checkoutBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+        🔒 Proceed to Checkout
       </button>
     </div>
   </div>
@@ -180,8 +179,8 @@ const preUiPayload = {
     <div class="modal-drawer" style="max-width: 580px;">
       <div class="drawer-header" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 1.25rem;">
         <div>
-          <h3 class="drawer-title" style="color: #fff;">✈️ 2C2P PACO Pre-Payment Review</h3>
-          <span style="font-size: 0.75rem; color: #e0f2fe;">Metadata retrieved via /paco/v1/prepaymentui</span>
+          <h3 class="drawer-title" style="color: #fff;">🔒 Select Payment Method</h3>
+          <span style="font-size: 0.75rem; color: #e0f2fe;">2C2P PACO Secure Payment Gateway</span>
         </div>
         <button class="close-btn" onclick="closePrepaymentUiModal()">&times;</button>
       </div>
@@ -193,19 +192,19 @@ const preUiPayload = {
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-size: 0.85rem; color: #94a3b8;">Total Payable</span>
-          <span style="font-size: 1.3rem; font-weight: 800; color: #34d399;" id="preUiAmount">THB 0.00</span>
+          <span style="font-size: 1.3rem; font-weight: 800; color: #34d399;" id="preUiAmount">MYR 0.00</span>
         </div>
       </div>
 
       <div style="margin-bottom: 1rem;">
         <label style="font-size: 0.85rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 8px;">
-          Available Payment Channels (From 2C2P PACO PrePaymentUI API):
+          Available Payment Options:
         </label>
         <div id="preUiChannelsList"></div>
       </div>
 
       <button class="checkout-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);" onclick="confirmAndRedirectToPaco()">
-        🔒 Confirm & Proceed to 2C2P PACO Page
+        🔒 Pay Now
       </button>
     </div>
   </div>
@@ -214,15 +213,15 @@ const preUiPayload = {
   <div class="modal-overlay" id="configModal">
     <div class="modal-drawer" style="max-width: 540px;">
       <div class="drawer-header">
-        <h3 class="drawer-title">2C2P PACO PrePaymentUI Configuration</h3>
+        <h3 class="drawer-title">2C2P PACO Gateway Settings</h3>
         <button class="close-btn" onclick="closeConfigModal()">&times;</button>
       </div>
 
       <div style="margin-bottom: 1rem;">
         <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Environment Mode</label>
         <select id="cfgMode" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
-          <option value="simulator">Local PrePaymentUI Simulator</option>
-          <option value="sandbox">Live 2C2P PACO PrePaymentUI Gateway API</option>
+          <option value="simulator">Local Payment Simulator</option>
+          <option value="sandbox">Live 2C2P PACO Gateway API</option>
         </select>
       </div>
 
@@ -231,24 +230,19 @@ const preUiPayload = {
         <input type="text" id="cfgMerchantId" placeholder="e.g. PACO_PARTNER_DEMO" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
       </div>
 
-      <div style="margin-bottom: 1rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">PACO Secret Key</label>
-        <input type="password" id="cfgSecretKey" placeholder="Enter PACO Secret Key" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
-      </div>
-
       <div style="margin-bottom: 1.5rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">PACO PrePaymentUI Endpoint URL</label>
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">PACO Endpoint URL</label>
         <input type="text" id="cfgPacoApiUrl" value="https://core.demo-paco.2c2p.com/paco/v1/prepaymentui" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
       </div>
 
       <button class="checkout-btn" style="background: var(--accent-primary);" onclick="saveConfig()">
-        💾 Save Credentials
+        💾 Save Settings
       </button>
     </div>
   </div>
 
   <footer>
-    <p>2C2P PACO PrePaymentUI Integration Demo</p>
+    <p>Nexus Gear Store • 2C2P PACO Secure Gateway</p>
   </footer>
 
   <script src="app.js"></script>
