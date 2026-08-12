@@ -1,8 +1,8 @@
 const PRODUCTS = [
-  { id: 'prod_1', name: 'AeroPulse Noise-Canceling Headphones', price: 2490, icon: '🎧', description: 'Studio-grade spatial audio with active noise cancellation and 40h battery.' },
-  { id: 'prod_2', name: 'CyberKey Mechanical Keyboard', price: 1850, icon: '⌨️', description: 'Hot-swappable RGB mechanical switches with gasket mount acoustic dampening.' },
-  { id: 'prod_3', name: 'UltraFit OLED Smart Watch', price: 3200, icon: '⌚', description: 'Curved AMOLED display, blood oxygen tracking, and 14-day battery life.' },
-  { id: 'prod_4', name: 'VoltCore 65W GaN Fast Charger', price: 890, icon: '🔌', description: 'Ultra-compact triple port USB-C GaN charger for laptop and mobile.' }
+  { id: 'prod_1', name: 'AeroPulse Noise-Canceling Headphones', price: 349, icon: '🎧', description: 'Studio-grade spatial audio with active noise cancellation and 40h battery.' },
+  { id: 'prod_2', name: 'CyberKey Mechanical Keyboard', price: 280, icon: '⌨️', description: 'Hot-swappable RGB mechanical switches with gasket mount acoustic dampening.' },
+  { id: 'prod_3', name: 'UltraFit OLED Smart Watch', price: 490, icon: '⌚', description: 'Curved AMOLED display, blood oxygen tracking, and 14-day battery life.' },
+  { id: 'prod_4', name: 'VoltCore 65W GaN Fast Charger', price: 120, icon: '🔌', description: 'Ultra-compact triple port USB-C GaN charger for laptop and mobile.' }
 ];
 
 let cart = [
@@ -52,7 +52,7 @@ function renderProducts() {
         <h3 class="product-title">${p.name}</h3>
         <p class="product-desc">${p.description}</p>
         <div class="product-footer">
-          <span class="product-price">THB ${p.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span class="product-price">MYR ${p.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
           <button class="add-cart-btn" onclick="addToCart('${p.id}')">🛒 Add to Cart</button>
         </div>
       </div>
@@ -87,18 +87,18 @@ function updateCartUI() {
       <div class="cart-item">
         <div>
           <div style="font-weight: 600;">${item.name}</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">THB ${item.price.toLocaleString()} x ${item.quantity}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">MYR ${item.price.toLocaleString()} x ${item.quantity}</div>
         </div>
         <div style="font-weight: 700; color: #fff;">
-          THB ${(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          MYR ${(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 2 })}
         </div>
       </div>
     `).join('');
   }
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  document.getElementById('subtotalAmount').innerText = `THB ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-  document.getElementById('totalAmount').innerText = `THB ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  document.getElementById('subtotalAmount').innerText = `MYR ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  document.getElementById('totalAmount').innerText = `MYR ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 }
 
 function openCart() {
@@ -130,7 +130,7 @@ async function requestPacoPrePaymentUi() {
         items: cart,
         customerName: custName,
         customerEmail: custEmail,
-        currencyCode: 'THB'
+        currencyCode: 'MYR'
       })
     });
 
@@ -277,7 +277,7 @@ async function fetchOrders() {
           </div>
 
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; font-size: 0.85rem; margin-top: 10px; color: var(--text-muted);">
-            <div><strong>Amount:</strong> THB ${o.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+            <div><strong>Amount:</strong> MYR ${o.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div><strong>Customer:</strong> ${o.customerName || 'N/A'}</div>
             <div><strong>Txn Ref:</strong> <code>${o.transactionRef || 'Pending'}</code></div>
             <div><strong>Channel:</strong> ${o.paymentChannel || 'PrePaymentUI Selected'}</div>

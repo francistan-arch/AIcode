@@ -89,7 +89,7 @@ app.post('/api/config', (req, res) => {
 // 2. PACO `prepaymentui` Request API
 app.post('/api/paco/prepaymentui', async (req, res) => {
   try {
-    const { items, customerName, customerEmail, currencyCode = 'THB' } = req.body;
+    const { items, customerName, customerEmail, currencyCode = 'MYR' } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Cart must contain at least one item' });
@@ -343,8 +343,8 @@ app.post('/api/simulator/paco-submit-payment', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n==================================================`);
   console.log(`🚀 2C2P PACO PrePaymentUI Gateway Integration Server`);
-  console.log(`🔗 Local URL: http://localhost:${PORT}`);
-  console.log(`⚙️  Active Engine: 2C2P PACO PrePaymentUI`);
+  console.log(`🔗 Local URL: http://localhost:3000`);
+  console.log(`⚙️  Active Engine: 2C2P PACO PrePaymentUI (MYR)`);
   console.log(`⚙️  PrePaymentUI Endpoint: ${currentConfig.pacoApiUrl}`);
   console.log(`==================================================\n`);
 });
