@@ -23,11 +23,11 @@ const inspectorLogs = [];
 const activeTokens = new Map();
 
 let currentConfig = {
-  gatewayType: process.env.GATEWAY_TYPE || '2c2p-pgw', // '2c2p-pgw' or '2c2p-paco'
-  merchantID: process.env['2C2P_MERCHANT_ID'] || 'JT01',
-  secretKey: process.env['2C2P_SECRET_KEY'] || '72A910E124A4B9448D3528A6D3F9514300E634A9F200A51D14187D397C11C3D6',
+  gatewayType: process.env.GATEWAY_TYPE || '2c2p-paco', // PACO Hosted Payment Page as default
+  merchantID: process.env['2C2P_MERCHANT_ID'] || 'PACO_AIR_DEMO',
+  secretKey: process.env['2C2P_SECRET_KEY'] || 'PACO_SECRET_KEY_72A910E124A4B9448D3528A6D3F9514300E634A9F200A51D14187D397C11C3D6',
   apiUrl: process.env['2C2P_API_URL'] || 'https://sandbox-pgw.2c2p.com/payment/4.3/paymentToken',
-  pacoApiUrl: process.env['PACO_API_URL'] || 'https://core.demo-paco.2c2p.com/api/v1/payment',
+  pacoApiUrl: process.env['PACO_API_URL'] || 'https://core.demo-paco.2c2p.com/paco/v1/hpp/session',
   mode: process.env.MODE || 'simulator'
 };
 
@@ -86,7 +86,7 @@ app.post('/api/config', (req, res) => {
   res.json({ success: true, message: 'Configuration updated successfully', config: currentConfig });
 });
 
-// 2. Checkout API - Supports standard 2C2P PGW v4.3 or 2C2P PACO Engine
+// 2. Checkout API - Generates PACO Hosted Payment Page Session
 app.post('/api/checkout', async (req, res) => {
   try {
     const { items, customerName, customerEmail, currencyCode = 'THB' } = req.body;
@@ -103,9 +103,9 @@ app.post('/api/checkout', async (req, res) => {
     let result;
 
     if (currentConfig.gatewayType === '2c2p-paco') {
-      // 2C2P PACO (Payment Air Controller) Engine
+      // 2C2P PACO Hosted Payment Page (HPP) Session
       const paco = getPacoInstance();
-      result = await paco.createPacoPayment({
+      result = await paco.createPacoHppSession({
         invoiceNo,
         description,
         amount: totalAmount,
@@ -149,7 +149,7 @@ app.post('/api/checkout', async (req, res) => {
       activeTokens.set(result.paymentToken, newOrder);
     }
 
-    logEvent('CHECKOUT_REQUEST', `Checkout Initiated via ${currentConfig.gatewayType.toUpperCase()} (${invoiceNo})`, {
+    logEvent('CHECKOUT_REQUEST', `Checkout Session Created via ${currentConfig.gatewayType.toUpperCase()} (${invoiceNo})`, {
       gateway: currentConfig.gatewayType,
       invoiceNo,
       amount: totalAmount,
@@ -223,8 +223,8 @@ app.post('/api/webhook/paco', (req, res) => {
     const invoiceNo = decoded.merchantReferenceNumber || decoded.invoiceNo;
     const pacoCode = decoded.code || 'PC-0000';
 
-    logEvent('WEBHOOK_RECEIVED', `PACO Webhook Received (${invoiceNo || 'Unknown'})`, {
-      gateway: 'PACO',
+    logEvent('WEBHOOK_RECEIVED', `PACO HPP Webhook Received (${invoiceNo || 'Unknown'})`, {
+      gateway: 'PACO_HPP',
       pacoCode,
       decodedPayload: decoded
     });
@@ -237,7 +237,7 @@ app.post('/api/webhook/paco', (req, res) => {
       order.respCode = pacoCode;
       order.respDesc = decoded.message || codeInfo.title;
       order.transactionRef = decoded.externalReferenceId || `PACO-TXN-${Date.now()}`;
-      order.paymentChannel = 'PACO Smart Route';
+      order.paymentChannel = 'PACO Hosted Page';
       order.updatedAt = new Date().toISOString();
       orders.set(invoiceNo, order);
     }
@@ -278,7 +278,7 @@ app.delete('/api/logs', (req, res) => {
   res.json({ success: true, message: 'Logs cleared' });
 });
 
-// 7. Simulator Payment API for PACO
+// 7. Simulator Payment API for PACO Hosted Page
 app.get('/api/simulator/payment-info', (req, res) => {
   const { paymentToken, invoiceNo } = req.query;
   let order = activeTokens.get(paymentToken) || orders.get(invoiceNo);
@@ -296,12 +296,12 @@ app.get('/api/simulator/payment-info', (req, res) => {
 
 app.post('/api/simulator/submit-payment', async (req, res) => {
   try {
-    const { paymentToken, invoiceNo, outcome = 'SUCCESS', paymentMethod = 'CREDIT_CARD' } = req.body;
+    const { paymentToken, invoiceNo, outcome = 'SUCCESS' } = req.body;
     let order = activeTokens.get(paymentToken) || orders.get(invoiceNo);
     if (!order) return res.status(404).json({ error: 'Order session not found' });
 
     const twoC2P = get2C2PInstance();
-    const respCode = outcome === 'SUCCESS' ? '0000' : (outcome === 'CANCELLED' ? '2001' : '2000');
+    const respCode = outcome === 'SUCCESS' ? '0000' : '2000';
 
     const webhookPayload = {
       merchantID: currentConfig.merchantID,
@@ -337,11 +337,11 @@ app.post('/api/simulator/paco-submit-payment', async (req, res) => {
     const webhookPayload = {
       partnerId: currentConfig.merchantID,
       merchantReferenceNumber: order.invoiceNo,
-      externalReferenceId: `PACO-TXN-${Date.now()}`,
+      externalReferenceId: `PACO-HPP-TXN-${Date.now()}`,
       amount: order.amount,
       currency: order.currencyCode,
       code: pacoCode,
-      message: pacoCode === 'PC-0000' ? 'Authorized' : `PACO Error ${pacoCode}`
+      message: pacoCode === 'PC-0000' ? 'PACO Hosted Payment Authorized' : `PACO Error ${pacoCode}`
     };
 
     const responseJwt = paco.signPayload(webhookPayload);
@@ -360,9 +360,9 @@ app.post('/api/simulator/paco-submit-payment', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n==================================================`);
-  console.log(`🚀 2C2P Payment Gateway & PACO Engine Demo Server`);
+  console.log(`🚀 2C2P PACO Hosted Payment Page Demo Server`);
   console.log(`🔗 Local URL: http://localhost:${PORT}`);
-  console.log(`⚙️  Current Gateway: ${currentConfig.gatewayType.toUpperCase()}`);
-  console.log(`⚙️  Current Mode: ${currentConfig.mode.toUpperCase()}`);
+  console.log(`⚙️  Active Engine: 2C2P PACO HOSTED PAYMENT PAGE`);
+  console.log(`⚙️  Mode: ${currentConfig.mode.toUpperCase()}`);
   console.log(`==================================================\n`);
 });

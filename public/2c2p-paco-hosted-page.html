@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2C2P PACO Secure Hosted Payment Page</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      background-color: #0b1329;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .paco-hpp-container {
+      max-width: 900px;
+      margin: 2.5rem auto;
+      background: #1e293b;
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+    .paco-hpp-header {
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #ed1c24 100%);
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+    }
+    .paco-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .paco-logo-badge {
+      background: #ed1c24;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.05em;
+    }
+    .timer-badge {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .paco-hpp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+    }
+    .paco-summary-sidebar {
+      background: #0f172a;
+      padding: 2rem;
+      border-right: 1px solid #334155;
+    }
+    .paco-payment-main {
+      padding: 2rem;
+    }
+    .channel-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid #334155;
+    }
+    .channel-tab {
+      padding: 10px 14px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .channel-tab.active {
+      color: #38bdf8;
+      border-color: #38bdf8;
+    }
+    .smart-route-banner {
+      background: rgba(14, 165, 233, 0.1);
+      border: 1px solid rgba(14, 165, 233, 0.3);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .form-label {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .form-input {
+      width: 100%;
+      padding: 11px 14px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .btn-submit-paco {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      border: none;
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 1.25rem;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+      transition: transform 0.2s;
+    }
+    .btn-submit-paco:hover { transform: translateY(-1px); }
+    .btn-fail-paco {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="paco-hpp-container">
+    <!-- Header -->
+    <div class="paco-hpp-header">
+      <div class="paco-brand">
+        <span class="paco-logo-badge">2C2P PACO</span>
+        <span style="font-weight: 700; font-size: 1.1rem;">Secure Hosted Payment Page</span>
+      </div>
+      <div class="timer-badge">
+        ⏳ Session Expires in <span id="pacoTimer" style="color: #38bdf8;">29:59</span>
+      </div>
+    </div>
+
+    <div class="paco-hpp-grid">
+      <!-- Order Summary Sidebar -->
+      <div class="paco-summary-sidebar">
+        <h4 style="color: #fff; font-size: 1.1rem; margin-bottom: 1.25rem;">Order Details</h4>
+
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Merchant Name</div>
+        <div style="font-weight: 700; color: #fff; margin-bottom: 1rem;" id="hppMerchant">Nexus Gear Store (PACO_AIR)</div>
+
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Invoice Number</div>
+        <div style="font-weight: 600; color: #38bdf8; margin-bottom: 1rem; word-break: break-all;" id="hppInvoice">Loading...</div>
+
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Order Description</div>
+        <div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 1.5rem;" id="hppDesc">Loading...</div>
+
+        <div style="border-top: 1px solid #334155; padding-top: 1rem;">
+          <div style="font-size: 0.85rem; color: #94a3b8;">Total Amount Due</div>
+          <div style="font-size: 1.6rem; font-weight: 800; color: #34d399;" id="hppAmount">THB 0.00</div>
+        </div>
+
+        <div style="margin-top: 1.5rem; background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 8px; font-size: 0.75rem; color: #94a3b8;">
+          🔒 Protected by 2C2P PACO 3DS v2.2 Risk Engine & PCI-DSS Level 1 Security.
+        </div>
+      </div>
+
+      <!-- Payment Method Selection -->
+      <div class="paco-payment-main">
+        <div class="smart-route-banner">
+          <div>
+            <strong>PACO Smart Engine:</strong> Optimal Route Selected
+          </div>
+          <span style="background: rgba(56, 189, 248, 0.2); padding: 2px 8px; border-radius: 10px; font-weight: 700; font-size: 0.7rem;">ACQUIRER_SG_01</span>
+        </div>
+
+        <!-- Payment Channels Tabs -->
+        <div class="channel-selector">
+          <button class="channel-tab active" onclick="switchHppChannel('card')">💳 Credit / Debit Card</button>
+          <button class="channel-tab" onclick="switchHppChannel('qr')">📲 PromptPay / QR</button>
+          <button class="channel-tab" onclick="switchHppChannel('wallet')">👛 E-Wallet</button>
+        </div>
+
+        <!-- Card Form -->
+        <div id="hpp-channel-card">
+          <div style="margin-bottom: 1rem;">
+            <label class="form-label">Cardholder Name</label>
+            <input type="text" class="form-input" value="ALEX PACO TESTER">
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <label class="form-label">Card Number</label>
+            <input type="text" class="form-input" value="4532 1111 2222 3333">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+            <div>
+              <label class="form-label">Expiry (MM/YY)</label>
+              <input type="text" class="form-input" value="12/28">
+            </div>
+            <div>
+              <label class="form-label">CVV2</label>
+              <input type="text" class="form-input" value="999">
+            </div>
+          </div>
+        </div>
+
+        <!-- QR Form -->
+        <div id="hpp-channel-qr" style="display: none; text-align: center; padding: 1rem 0;">
+          <div style="background: #ffffff; padding: 1rem; border-radius: 8px; display: inline-block;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=2C2P_PACO_PROMPTPAY_QR_DEMO" alt="PromptPay QR">
+          </div>
+          <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 10px;">Scan QR with any Thai Mobile Banking app (SCB, KBANK, Bangkok Bank)</p>
+        </div>
+
+        <!-- Wallet Form -->
+        <div id="hpp-channel-wallet" style="display: none;">
+          <div style="margin-bottom: 1rem;">
+            <label class="form-label">Select E-Wallet</label>
+            <select class="form-input">
+              <option value="TRUEMONEY">TrueMoney Wallet</option>
+              <option value="SHOPEEPAY">ShopeePay</option>
+              <option value="RABBIT_LINEPAY">Rabbit LINE Pay</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <label class="form-label">Mobile Number</label>
+            <input type="text" class="form-input" value="081-999-8888">
+          </div>
+        </div>
+
+        <!-- Action Triggers -->
+        <div style="border-top: 1px solid #334155; padding-top: 1rem; margin-top: 1.5rem;">
+          <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">
+            🧪 PACO Hosted Page Test Actions
+          </div>
+          <button class="btn-submit-paco" onclick="submitPacoHpp('PC-0000')">
+            🔒 Complete PACO Payment (PC-0000)
+          </button>
+          <button class="btn-fail-paco" onclick="submitPacoHpp('PC-B00101')">
+            ❌ Simulate PACO Card Declined (PC-B00101)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const hppToken = urlParams.get('hppToken');
+    const invoiceNo = urlParams.get('invoiceNo');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchHppDetails();
+      startTimer();
+    });
+
+    async function fetchHppDetails() {
+      try {
+        const res = await fetch(`/api/simulator/payment-info?paymentToken=${encodeURIComponent(hppToken || '')}&invoiceNo=${encodeURIComponent(invoiceNo || '')}`);
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('hppInvoice').innerText = data.invoiceNo;
+          document.getElementById('hppDesc').innerText = data.description || 'Nexus Tech Gadget Order';
+          document.getElementById('hppAmount').innerText = `${data.currencyCode} ${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        }
+      } catch (e) { console.error('Fetch PACO HPP error:', e); }
+    }
+
+    function switchHppChannel(channel) {
+      document.querySelectorAll('.channel-tab').forEach(t => t.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      document.getElementById('hpp-channel-card').style.display = channel === 'card' ? 'block' : 'none';
+      document.getElementById('hpp-channel-qr').style.display = channel === 'qr' ? 'block' : 'none';
+      document.getElementById('hpp-channel-wallet').style.display = channel === 'wallet' ? 'block' : 'none';
+    }
+
+    async function submitPacoHpp(pacoCode) {
+      try {
+        const res = await fetch('/api/simulator/paco-submit-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentToken: hppToken, invoiceNo, pacoCode })
+        });
+        const data = await res.json();
+        if (data.returnUrl) window.location.href = data.returnUrl;
+      } catch (e) { alert('PACO HPP submit error: ' + e.message); }
+    }
+
+    function startTimer() {
+      let seconds = 1799;
+      setInterval(() => {
+        if (seconds <= 0) return;
+        seconds--;
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        document.getElementById('pacoTimer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
