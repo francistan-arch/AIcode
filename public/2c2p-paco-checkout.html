@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2C2P PACO Gateway • Payment Air Controller</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      background-color: #0b1329;
+      color: #f8fafc;
+    }
+    .paco-wrapper {
+      max-width: 840px;
+      margin: 3rem auto;
+      background: #1e293b;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+    .paco-header {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #ed1c24 100%);
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .paco-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      letter-spacing: -0.01em;
+    }
+    .paco-badge {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .paco-body {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+    }
+    .paco-sidebar {
+      background: #0f172a;
+      padding: 2rem;
+      border-right: 1px solid #334155;
+    }
+    .paco-main {
+      padding: 2rem;
+    }
+    .routing-box {
+      background: rgba(37, 99, 235, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+    }
+    .btn-paco-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      border: none;
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+    .btn-paco-biz-fail {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+    .btn-paco-tech-fail {
+      background: #f59e0b;
+      color: #fff;
+      border: none;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="paco-wrapper">
+    <div class="paco-header">
+      <div class="paco-title">
+        <span>✈️ 2C2P PACO • Payment Air Controller</span>
+      </div>
+      <span class="paco-badge">PACO Smart Route Active</span>
+    </div>
+
+    <div class="paco-body">
+      <!-- Sidebar -->
+      <div class="paco-sidebar">
+        <h4 style="margin-bottom: 1rem; color: #fff;">PACO Session Summary</h4>
+        
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Partner ID</div>
+        <div style="font-weight: 700; color: #60a5fa; margin-bottom: 1rem;">PACO_DEMO_PARTNER</div>
+
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Invoice Number</div>
+        <div style="font-weight: 600; color: #fff; margin-bottom: 1rem; word-break: break-all;" id="pacoInvoice">Loading...</div>
+
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Total Amount</div>
+        <div style="font-size: 1.5rem; font-weight: 800; color: #34d399;" id="pacoAmount">THB 0.00</div>
+      </div>
+
+      <!-- Main Payment -->
+      <div class="paco-main">
+        <div class="routing-box">
+          <div style="font-weight: 700; color: #60a5fa; margin-bottom: 4px;">⚡ Smart Routing Optimization</div>
+          <div style="color: #cbd5e1;">Active Acquirer: <code style="color: #34d399;">PACO_ACQUIRER_SG_01</code></div>
+          <div style="color: #cbd5e1; font-size: 0.8rem; margin-top: 2px;">3DS Engine: EMV 3DS v2.2 (Frictionless Authentication)</div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Credit / Debit Card Number</label>
+          <input type="text" value="4532 1234 5678 9012" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+          <div>
+            <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Expiry</label>
+            <input type="text" value="08/29" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">CVV</label>
+            <input type="text" value="888" style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px;">
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #334155; padding-top: 1rem; margin-top: 1.5rem;">
+          <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">
+            🧪 PACO Gateway Simulator Controls
+          </div>
+          <button class="btn-paco-success" onclick="submitPacoPayment('PC-0000')">
+            ✈️ Authorize via PACO (PC-0000)
+          </button>
+          <button class="btn-paco-biz-fail" onclick="submitPacoPayment('PC-B00101')">
+            ❌ Simulate PACO Business Error (PC-B00101)
+          </button>
+          <button class="btn-paco-tech-fail" onclick="submitPacoPayment('PC-T050020')">
+            ⚠️ Simulate PACO Routing Error (PC-T050020)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentToken = urlParams.get('paymentToken');
+    const invoiceNo = urlParams.get('invoiceNo');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (invoiceNo) fetchPaymentInfo();
+    });
+
+    async function fetchPaymentInfo() {
+      try {
+        const res = await fetch(`/api/simulator/payment-info?paymentToken=${encodeURIComponent(paymentToken || '')}&invoiceNo=${encodeURIComponent(invoiceNo || '')}`);
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('pacoInvoice').innerText = data.invoiceNo;
+          document.getElementById('pacoAmount').innerText = `${data.currencyCode} ${data.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function submitPacoPayment(pacoCode) {
+      try {
+        const res = await fetch('/api/simulator/paco-submit-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentToken, invoiceNo, pacoCode })
+        });
+        const data = await res.json();
+        if (data.returnUrl) {
+          window.location.href = data.returnUrl;
+        }
+      } catch (err) {
+        alert('PACO Simulator submit error: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

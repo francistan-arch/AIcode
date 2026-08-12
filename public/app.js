@@ -1,4 +1,3 @@
-// Store Products Catalog
 const PRODUCTS = [
   { id: 'prod_1', name: 'AeroPulse Noise-Canceling Headphones', price: 2490, icon: '🎧', description: 'Studio-grade spatial audio with active noise cancellation and 40h battery.' },
   { id: 'prod_2', name: 'CyberKey Mechanical Keyboard', price: 1850, icon: '⌨️', description: 'Hot-swappable RGB mechanical switches with gasket mount acoustic dampening.' },
@@ -11,11 +10,11 @@ let cart = [
 ];
 
 let currentConfig = {
+  gatewayType: '2c2p-pgw',
   merchantID: 'JT01',
   mode: 'simulator'
 };
 
-// Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
   renderProducts();
   updateCartUI();
@@ -23,14 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchOrders();
   fetchInspectorLogs();
 
-  // Poll for live updates every 3 seconds
   setInterval(() => {
     fetchOrders();
     fetchInspectorLogs();
   }, 3000);
 });
 
-// Switch Dashboard Tabs
 function switchPanel(panelId) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => {
@@ -40,11 +37,9 @@ function switchPanel(panelId) {
   const activePanel = document.getElementById(`panel-${panelId}`);
   if (activePanel) activePanel.classList.add('active');
 
-  const btn = event?.currentTarget;
-  if (btn) btn.classList.add('active');
+  if (event?.currentTarget) event.currentTarget.classList.add('active');
 }
 
-// Render Products Grid
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
   grid.innerHTML = PRODUCTS.map(p => `
@@ -62,7 +57,6 @@ function renderProducts() {
   `).join('');
 }
 
-// Cart Logic
 function addToCart(productId) {
   const prod = PRODUCTS.find(p => p.id === productId);
   if (!prod) return;
@@ -112,7 +106,6 @@ function closeCart() {
   document.getElementById('cartModal').classList.remove('active');
 }
 
-// Proceed to 2C2P Checkout
 async function proceedToCheckout() {
   if (cart.length === 0) {
     alert('Please add at least one item to cart before checkout.');
@@ -121,7 +114,7 @@ async function proceedToCheckout() {
 
   const btn = document.getElementById('checkoutBtn');
   btn.disabled = true;
-  btn.innerHTML = '⏳ Initializing 2C2P Hosted Page...';
+  btn.innerHTML = `⏳ Initializing ${currentConfig.gatewayType === '2c2p-paco' ? 'PACO Engine' : '2C2P Hosted Page'}...`;
 
   const custName = document.getElementById('custName').value;
   const custEmail = document.getElementById('custEmail').value;
@@ -139,33 +132,33 @@ async function proceedToCheckout() {
     });
 
     const data = await res.json();
-
     if (!res.ok) throw new Error(data.error || 'Checkout creation failed');
 
-    // Redirect user to 2C2P Hosted Payment Page URL
-    console.log('Redirecting to 2C2P Hosted Payment URL:', data.webPaymentUrl);
     window.location.href = data.webPaymentUrl;
   } catch (err) {
     alert(`Checkout Error: ${err.message}`);
     btn.disabled = false;
-    btn.innerHTML = '🔒 Pay via 2C2P Hosted Page';
+    btn.innerHTML = '🔒 Pay via 2C2P Gateway';
   }
 }
 
-// Config Modal & Fetch
 async function fetchConfig() {
   try {
     const res = await fetch('/api/config');
     const data = await res.json();
     currentConfig = data;
 
-    document.getElementById('merchantIdText').innerText = data.merchantID;
-    document.getElementById('modeText').innerText = data.mode === 'simulator' 
-      ? '2C2P Hosted Simulator Mode (Local Test)' 
-      : '2C2P Live Sandbox Mode';
+    const isPaco = data.gatewayType === '2c2p-paco';
+    document.getElementById('gatewayText').innerText = isPaco 
+      ? '2C2P PACO (Payment Air Controller Engine)' 
+      : 'Standard 2C2P PGW v4.3';
+    document.getElementById('gatewayText').style.color = isPaco ? '#34d399' : '#60a5fa';
 
+    document.getElementById('merchantIdText').innerText = data.merchantID;
+    document.getElementById('modeText').innerText = data.mode === 'simulator' ? 'Simulator' : 'Live Sandbox';
+
+    document.getElementById('cfgGatewayType').value = data.gatewayType;
     document.getElementById('cfgMerchantId').value = data.merchantID;
-    document.getElementById('cfgApiUrl').value = data.apiUrl;
     document.getElementById('cfgMode').value = data.mode;
   } catch (e) {
     console.error('Failed to fetch config:', e);
@@ -181,19 +174,19 @@ function closeConfigModal() {
 }
 
 async function saveConfig() {
+  const gatewayType = document.getElementById('cfgGatewayType').value;
   const merchantID = document.getElementById('cfgMerchantId').value;
   const secretKey = document.getElementById('cfgSecretKey').value;
-  const apiUrl = document.getElementById('cfgApiUrl').value;
   const mode = document.getElementById('cfgMode').value;
 
   try {
     const res = await fetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ merchantID, secretKey: secretKey || undefined, apiUrl, mode })
+      body: JSON.stringify({ gatewayType, merchantID, secretKey: secretKey || undefined, mode })
     });
     if (res.ok) {
-      alert('2C2P Gateway Configuration Saved!');
+      alert('Gateway & PACO Engine Configuration Saved!');
       closeConfigModal();
       fetchConfig();
     }
@@ -202,7 +195,6 @@ async function saveConfig() {
   }
 }
 
-// Fetch Orders
 async function fetchOrders() {
   try {
     const res = await fetch('/api/orders');
@@ -219,15 +211,19 @@ async function fetchOrders() {
       if (o.status === 'COMPLETED') statusColor = 'var(--success)';
       if (o.status === 'FAILED' || o.status === 'ERROR') statusColor = 'var(--danger)';
 
+      const isPaco = o.gateway === '2c2p-paco';
+
       return `
         <div class="log-card">
           <div class="log-header">
             <div>
               <span style="font-weight: 700; font-size: 1rem;">${o.invoiceNo}</span>
-              <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 10px;">${o.description}</span>
+              <span style="font-size: 0.75rem; background: ${isPaco ? '#059669' : '#2563eb'}; color: #fff; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">
+                ${isPaco ? '2C2P PACO' : '2C2P PGW'}
+              </span>
             </div>
             <span style="background: ${statusColor}22; color: ${statusColor}; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; text-transform: uppercase;">
-              ${o.status}
+              ${o.status} (${o.respCode || 'PENDING'})
             </span>
           </div>
 
@@ -235,16 +231,8 @@ async function fetchOrders() {
             <div><strong>Amount:</strong> THB ${o.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div><strong>Customer:</strong> ${o.customerName || 'N/A'}</div>
             <div><strong>Txn Ref:</strong> <code>${o.transactionRef || 'Pending'}</code></div>
-            <div><strong>Payment Channel:</strong> ${o.paymentChannel || '2C2P Hosted'}</div>
-            <div><strong>Created:</strong> ${new Date(o.createdAt).toLocaleTimeString()}</div>
+            <div><strong>Channel:</strong> ${o.paymentChannel || 'Auto Route'}</div>
           </div>
-
-          ${o.webPaymentUrl ? `
-            <div style="margin-top: 12px; pt-2; border-top: 1px solid var(--border-color); font-size: 0.8rem;">
-              <strong>Hosted Payment URL:</strong> 
-              <a href="${o.webPaymentUrl}" target="_blank" style="color: #60a5fa; word-break: break-all;">${o.webPaymentUrl}</a>
-            </div>
-          ` : ''}
         </div>
       `;
     }).join('');
@@ -253,7 +241,6 @@ async function fetchOrders() {
   }
 }
 
-// Fetch Inspector Logs
 async function fetchInspectorLogs() {
   try {
     const res = await fetch('/api/logs');
@@ -261,7 +248,7 @@ async function fetchInspectorLogs() {
     const container = document.getElementById('inspectorLogs');
 
     if (!logs || logs.length === 0) {
-      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No API logs captured yet. Complete a checkout to see live payloads.</div>`;
+      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No API logs captured yet.</div>`;
       return;
     }
 
