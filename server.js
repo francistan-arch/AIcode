@@ -25,9 +25,12 @@ const activeTokens = new Map();
 
 let currentConfig = {
   gatewayType: process.env.GATEWAY_TYPE || '2c2p-paco',
-  merchantID: process.env.PACO_PARTNER_ID || process.env['2C2P_MERCHANT_ID'] || 'PACO_PARTNER_DEMO',
+  merchantID: process.env.PACO_OFFICE_ID || 'AirAsiaRewards',
+  officeId: process.env.PACO_OFFICE_ID || 'AirAsiaRewards',
+  apiKey: process.env.PACO_API_KEY || 'a89ffc44f0dd412188251ddfa2bf8757',
+  kid: process.env.PACO_KID || '7664a2ed0dee4879bdfca0e8ce1ac313',
   apiUrl: process.env['2C2P_API_URL'] || 'https://demo2.2c2p.com/2C2PFrontEnd/Payment/4.3/paymentToken',
-  pacoApiUrl: process.env.PACO_API_URL || 'https://core.demo-paco.2c2p.com/paco/v1/hpp/session',
+  pacoApiUrl: process.env.PACO_API_URL || 'https://core.demo-paco.2c2p.com/api/2.0/Payment/prePaymentUI',
   mode: process.env.MODE || 'simulator'
 };
 
@@ -40,11 +43,11 @@ function get2C2PInstance() {
 
 function getPacoInstance() {
   return new PacoService({
-    partnerId: currentConfig.merchantID,
+    officeId: currentConfig.officeId,
+    apiKey: currentConfig.apiKey,
+    kid: currentConfig.kid,
     apiUrl: currentConfig.pacoApiUrl,
-    mode: currentConfig.mode,
-    privatePem: getPrivateKey(),
-    publicPem: getPublicKey()
+    mode: currentConfig.mode
   });
 }
 
