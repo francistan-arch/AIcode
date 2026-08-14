@@ -234,6 +234,16 @@ header.app-header {
   color: #ffffff;
 }
 
+.obscure-cfg-btn {
+  opacity: 0.25;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.obscure-cfg-btn:hover {
+  opacity: 1 !important;
+  transform: rotate(45deg);
+}
+
 .cart-btn {
   background: linear-gradient(135deg, var(--airasia-red) 0%, #990B20 100%);
   color: #ffffff;

@@ -34,6 +34,7 @@
         <button class="ctrl-btn" onclick="setFontSize('large')" title="Large Text Size" style="font-size: 1rem;">A+</button>
         <button class="ctrl-btn" onclick="setFontSize('xlarge')" title="Extra Large Text Size" style="font-size: 1.15rem;">A++</button>
         <button class="ctrl-btn" onclick="toggleTheme()" id="themeToggleBtn" title="Toggle Light/Dark Theme">🌙</button>
+        <button class="ctrl-btn obscure-cfg-btn" onclick="toggleMode()" id="obscureModeBtn" title="System Settings" style="opacity: 0.25; font-size: 0.75rem; padding: 2px 5px; margin-left: 2px;">⚙️</button>
       </div>
     </nav>
   </header>
@@ -54,16 +55,6 @@
           <span class="perk-pill">🔒 2C2P PACO Secure Checkout</span>
         </div>
       </div>
-    </div>
-
-    <!-- Gateway Mode Banner -->
-    <div class="mode-banner">
-      <div class="mode-info">
-        <div class="status-dot"></div>
-        <span>Gateway Mode: <strong id="modeText" style="color: var(--airasia-red);">Local Simulator</strong></span>
-        <span style="color: var(--text-dim); font-size: 0.85rem;">(Office ID: <code id="merchantIdText">AirAsiaRewards</code> | Partner API Key: <code>a89ffc44...</code>)</span>
-      </div>
-      <button class="mode-toggle-btn" onclick="toggleMode()">⚙️ Gateway Settings</button>
     </div>
 
     <!-- Store Panel -->

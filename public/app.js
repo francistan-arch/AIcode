@@ -246,12 +246,20 @@ async function fetchConfig() {
     const data = await res.json();
     currentConfig = data;
 
-    document.getElementById('merchantIdText').innerText = data.merchantID;
-    document.getElementById('modeText').innerText = data.mode === 'sandbox' ? 'Live 2C2P Gateway (Sandbox)' : 'Local Payment Simulator';
+    const merchantIdTextEl = document.getElementById('merchantIdText');
+    if (merchantIdTextEl) merchantIdTextEl.innerText = data.merchantID;
 
-    document.getElementById('cfgMerchantId').value = data.merchantID;
-    document.getElementById('cfgMode').value = data.mode;
-    if (data.pacoApiUrl) document.getElementById('cfgPacoApiUrl').value = data.pacoApiUrl;
+    const modeTextEl = document.getElementById('modeText');
+    if (modeTextEl) modeTextEl.innerText = data.mode === 'sandbox' ? 'Live 2C2P Gateway (Sandbox)' : 'Local Payment Simulator';
+
+    const cfgMerchantIdEl = document.getElementById('cfgMerchantId');
+    if (cfgMerchantIdEl) cfgMerchantIdEl.value = data.merchantID;
+
+    const cfgModeEl = document.getElementById('cfgMode');
+    if (cfgModeEl) cfgModeEl.value = data.mode;
+
+    const cfgPacoApiUrlEl = document.getElementById('cfgPacoApiUrl');
+    if (cfgPacoApiUrlEl && data.pacoApiUrl) cfgPacoApiUrlEl.value = data.pacoApiUrl;
   } catch (e) {
     console.error('Failed to fetch config:', e);
   }
