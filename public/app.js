@@ -1,8 +1,8 @@
 const PRODUCTS = [
-  { id: 'prod_1', name: 'AeroPulse Noise-Canceling Headphones', price: 349, icon: '🎧', description: 'Studio-grade spatial audio with active noise cancellation and 40h battery.' },
-  { id: 'prod_2', name: 'CyberKey Mechanical Keyboard', price: 280, icon: '⌨️', description: 'Hot-swappable RGB mechanical switches with gasket mount acoustic dampening.' },
-  { id: 'prod_3', name: 'UltraFit OLED Smart Watch', price: 490, icon: '⌚', description: 'Curved AMOLED display, blood oxygen tracking, and 14-day battery life.' },
-  { id: 'prod_4', name: 'VoltCore 65W GaN Fast Charger', price: 120, icon: '🔌', description: 'Ultra-compact triple port USB-C GaN charger for laptop and mobile.' }
+  { id: 'prod_red_plus', name: 'Red+ Subscription Membership', price: 99.00, image: 'images/red_plus_card.png', description: 'Exclusive AirAsia Rewards Red+ membership. Earn 10x airasia points, free seat vouchers, and priority perks.' },
+  { id: 'prod_red_plus_premium', name: 'Red+ Premium VIP Pass', price: 199.00, image: 'images/red_vip_pass.png', description: 'Unlimited ASEAN flight discounts, 15x points multiplier, lounge access, and zero booking fees.' },
+  { id: 'prod_points_5k', name: '5,000 airasia points Booster', price: 150.00, image: 'images/points_booster.png', description: 'Instant top-up of 5,000 airasia points credited directly to your AirAsia Rewards member ID.' },
+  { id: 'prod_flight_pass', name: 'AirAsia ASEAN Flight Pass', price: 499.00, image: 'images/flight_pass.png', description: 'Fly across Malaysia, Thailand, Indonesia, Philippines, and Vietnam with zero base fare redemptions.' }
 ];
 
 let cart = [
@@ -11,9 +11,11 @@ let cart = [
 
 let currentConfig = {
   gatewayType: '2c2p-paco',
-  merchantID: 'PACO_PARTNER_DEMO',
+  merchantID: 'AirAsiaRewards',
   mode: 'simulator'
 };
+
+let loadedKeysData = {};
 
 document.addEventListener('DOMContentLoaded', () => {
   renderProducts();
@@ -21,12 +23,26 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchConfig();
   fetchOrders();
   fetchInspectorLogs();
+  fetchKeysStatus();
 
   setInterval(() => {
     fetchOrders();
     fetchInspectorLogs();
   }, 3000);
 });
+
+/* Accessibility Controls */
+function setFontSize(size) {
+  document.documentElement.setAttribute('data-fontsize', size);
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.innerText = newTheme === 'dark' ? '☀️' : '🌙';
+}
 
 function switchPanel(panelId) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -38,19 +54,44 @@ function switchPanel(panelId) {
   if (activePanel) activePanel.classList.add('active');
 
   if (event?.currentTarget) event.currentTarget.classList.add('active');
+
+  if (panelId === 'keys') fetchKeysStatus();
+}
+
+/* Dynamic Hover Ambient Backdrop Handlers */
+function setAmbientBackdrop(imageUrl) {
+  const bg = document.getElementById('ambientBackdrop');
+  if (!bg) return;
+  bg.style.backgroundImage = `url('${imageUrl}')`;
+  bg.classList.add('active');
+}
+
+function clearAmbientBackdrop() {
+  const bg = document.getElementById('ambientBackdrop');
+  if (!bg) return;
+  bg.classList.remove('active');
 }
 
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
+  const tagMap = {
+    'prod_red_plus': '🔥 10x Points Multiplier',
+    'prod_red_plus_premium': '✨ VIP Unlimited Pass',
+    'prod_points_5k': '⭐ Points Booster',
+    'prod_flight_pass': '✈️ ASEAN Unlimited'
+  };
+
   grid.innerHTML = PRODUCTS.map(p => `
-    <div class="product-card">
-      <div class="product-image">${p.icon}</div>
+    <div class="product-card" onmouseenter="setAmbientBackdrop('${p.image}')" onmouseleave="clearAmbientBackdrop()">
+      <div class="product-image" style="background-image: url('${p.image}'); background-size: cover; background-position: center; height: 210px;">
+        <span class="multiplier-tag">${tagMap[p.id] || 'Red+ Member Offer'}</span>
+      </div>
       <div class="product-body">
         <h3 class="product-title">${p.name}</h3>
         <p class="product-desc">${p.description}</p>
         <div class="product-footer">
           <span class="product-price">MYR ${p.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-          <button class="add-cart-btn" onclick="addToCart('${p.id}')">🛒 Add to Cart</button>
+          <button class="add-cart-btn" onclick="addToCart('${p.id}')">🛒 Subscribe / Buy</button>
         </div>
       </div>
     </div>
@@ -83,10 +124,10 @@ function updateCartUI() {
     list.innerHTML = cart.map(item => `
       <div class="cart-item">
         <div>
-          <div style="font-weight: 600;">${item.name}</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">MYR ${item.price.toLocaleString()} x ${item.quantity}</div>
+          <div style="font-weight: 700; color: var(--text-main);">${item.name}</div>
+          <div style="font-size: 0.85rem; color: var(--text-muted);">MYR ${item.price.toLocaleString()} x ${item.quantity}</div>
         </div>
-        <div style="font-weight: 700; color: #fff;">
+        <div style="font-weight: 800; color: var(--text-main);">
           MYR ${(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 2 })}
         </div>
       </div>
@@ -106,9 +147,6 @@ function closeCart() {
   document.getElementById('cartModal').classList.remove('active');
 }
 
-/**
- * Handles signed RS256 payment request silently and redirects directly to 2C2P payment page
- */
 async function proceedToCheckout() {
   if (cart.length === 0) {
     alert('Please add at least one item to cart before checkout.');
@@ -146,6 +184,65 @@ async function proceedToCheckout() {
   }
 }
 
+async function fetchKeysStatus() {
+  try {
+    const res = await fetch('/api/keys-status');
+    const data = await res.json();
+    if (!data.success || !data.keys) return;
+
+    loadedKeysData = data.keys;
+    const grid = document.getElementById('keysGrid');
+
+    grid.innerHTML = Object.values(data.keys).map(k => {
+      const isWarn = k.isDuplicate;
+      const statusClass = isWarn ? 'warn' : 'ok';
+      const statusLabel = isWarn ? 'Duplicate Key Warning' : 'Active & Unique';
+
+      return `
+        <div class="key-card ${isWarn ? 'duplicate-warning' : ''}">
+          <div class="key-card-header">
+            <div>
+              <div class="key-title">${k.label}</div>
+              <div style="font-size: 0.85rem; color: var(--text-dim); margin-top: 2px;">📁 <code>keys/${k.fileName}</code></div>
+            </div>
+            <span class="key-badge ${statusClass}">${statusLabel}</span>
+          </div>
+
+          <div style="font-size: 0.85rem; color: var(--text-muted);">
+            SHA256 Fingerprint:
+          </div>
+          <div class="key-hash">${k.hash || 'N/A'}</div>
+
+          ${isWarn ? `
+            <div style="font-size: 0.85rem; color: var(--warning); line-height: 1.4;">
+              ⚠️ <strong>Action Needed:</strong> This file is currently identical to <code>${k.duplicateWith.join(', ')}</code>. Replace this file with 2C2P's public key from Oliver.
+            </div>
+          ` : ''}
+
+          <button class="copy-btn" onclick="copyKeyContent('${k.key}')">
+            📋 Copy PEM Public Key Content
+          </button>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    console.error('Fetch keys error:', e);
+  }
+}
+
+function copyKeyContent(keyKey) {
+  const item = loadedKeysData[keyKey];
+  if (!item || !item.pem) {
+    alert('Key content not available.');
+    return;
+  }
+  navigator.clipboard.writeText(item.pem).then(() => {
+    alert(`Copied ${item.fileName} content to clipboard!`);
+  }).catch(err => {
+    alert('Failed to copy: ' + err);
+  });
+}
+
 async function fetchConfig() {
   try {
     const res = await fetch('/api/config');
@@ -153,7 +250,7 @@ async function fetchConfig() {
     currentConfig = data;
 
     document.getElementById('merchantIdText').innerText = data.merchantID;
-    document.getElementById('modeText').innerText = data.mode === 'sandbox' ? 'Live 2C2P Gateway' : 'Local Simulator';
+    document.getElementById('modeText').innerText = data.mode === 'sandbox' ? 'Live 2C2P Gateway (Sandbox)' : 'Local Payment Simulator';
 
     document.getElementById('cfgMerchantId').value = data.merchantID;
     document.getElementById('cfgMode').value = data.mode;
@@ -212,21 +309,21 @@ async function fetchOrders() {
         <div class="log-card">
           <div class="log-header">
             <div>
-              <span style="font-weight: 700; font-size: 1rem;">${o.invoiceNo}</span>
-              <span style="font-size: 0.75rem; background: #0284c7; color: #fff; padding: 2px 8px; border-radius: 10px; margin-left: 8px;">
-                2C2P PACO RS256
+              <span style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);">${o.invoiceNo}</span>
+              <span style="font-size: 0.75rem; background: #0284c7; color: #fff; padding: 3px 10px; border-radius: 12px; margin-left: 8px; font-weight: 700;">
+                2C2P PACO v2.0
               </span>
             </div>
-            <span style="background: ${statusColor}22; color: ${statusColor}; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; text-transform: uppercase;">
+            <span style="background: ${statusColor}22; color: ${statusColor}; font-size: 0.8rem; font-weight: 800; padding: 4px 12px; border-radius: 12px; text-transform: uppercase;">
               ${o.status} (${o.respCode || 'PENDING'})
             </span>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; font-size: 0.85rem; margin-top: 10px; color: var(--text-muted);">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 0.9rem; margin-top: 10px; color: var(--text-muted);">
             <div><strong>Amount:</strong> MYR ${o.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div><strong>Customer:</strong> ${o.customerName || 'N/A'}</div>
-            <div><strong>Txn Ref:</strong> <code>${o.transactionRef || 'Pending'}</code></div>
-            <div><strong>Channel:</strong> ${o.paymentChannel || '2C2P Payment Page'}</div>
+            <div><strong>Txn Ref:</strong> <code style="font-family: var(--font-mono); color: #38bdf8;">${o.transactionRef || 'Pending'}</code></div>
+            <div><strong>Channel:</strong> ${o.paymentChannel || '2C2P Hosted Gateway'}</div>
           </div>
         </div>
       `;
@@ -252,7 +349,7 @@ async function fetchInspectorLogs() {
         <div class="log-header">
           <div>
             <span class="log-tag ${l.type.toLowerCase()}">${l.type}</span>
-            <strong style="margin-left: 8px;">${l.title}</strong>
+            <strong style="margin-left: 8px; font-size: 1.05rem; color: var(--text-main);">${l.title}</strong>
           </div>
           <span class="log-time">${new Date(l.timestamp).toLocaleTimeString()}</span>
         </div>

@@ -1,64 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-fontsize="standard" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nexus Gear Store • 2C2P Secure Checkout</title>
+  <title>airasia rewards • Red+ Membership & Flight Deals (2C2P PACO v2.0)</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Ambient Backdrop Layer for Dynamic Product Hover -->
+  <div id="ambientBackdrop" class="ambient-backdrop"></div>
 
-  <!-- App Header -->
+  <!-- AirAsia Rewards Header -->
   <header class="app-header">
     <div class="brand-container">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="32" height="32" rx="8" fill="#ED1C24"/>
-        <path d="M8 12H24M8 16H24M8 20H18" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>
-      <div>
-        <span class="brand-title">Nexus Gear Store</span>
-        <span class="badge-2c2p" id="gatewayBadge">2C2P Secure Gateway</span>
+      <div class="airasia-logo-text">
+        airasia <span class="rewards-tag">rewards</span>
       </div>
+      <span class="badge-2c2p" id="gatewayBadge">2C2P PACO v2.0</span>
     </div>
 
+    <!-- Navigation Tabs -->
     <nav class="nav-links">
-      <button class="nav-btn active" onclick="switchPanel('store')">🛍️ Storefront</button>
+      <button class="nav-btn active" onclick="switchPanel('store')">🔴 Red+ Storefront</button>
+      <button class="nav-btn" onclick="switchPanel('keys')">🔑 RSA Keys Inspector</button>
       <button class="nav-btn" onclick="switchPanel('orders')">📋 Orders & Webhooks</button>
       <button class="nav-btn" onclick="switchPanel('inspector')">🔍 API Inspector</button>
-      <button class="nav-btn" onclick="switchPanel('guide')">📖 Gateway Guide</button>
+      <button class="nav-btn" onclick="switchPanel('guide')">📖 Integration Guide</button>
       <button class="nav-btn cart-btn" onclick="openCart()">
         🛒 Cart <span class="cart-badge" id="cartBadge">0</span>
       </button>
+
+      <!-- Accessibility / Readability Controls -->
+      <div class="accessibility-controls" title="Text Readability & Contrast Controls">
+        <button class="ctrl-btn" onclick="setFontSize('standard')" title="Standard Text Size">A</button>
+        <button class="ctrl-btn" onclick="setFontSize('large')" title="Large Text Size" style="font-size: 1rem;">A+</button>
+        <button class="ctrl-btn" onclick="setFontSize('xlarge')" title="Extra Large Text Size" style="font-size: 1.15rem;">A++</button>
+        <button class="ctrl-btn" onclick="toggleTheme()" id="themeToggleBtn" title="Toggle Light/Dark Theme">🌙</button>
+      </div>
     </nav>
   </header>
 
   <!-- Main Container -->
   <main class="container">
 
+    <!-- AirAsia Rewards Red+ Hero Banner -->
+    <div class="airasia-hero">
+      <div class="hero-content">
+        <div class="hero-badge">✨ Official Loyalty Pass</div>
+        <h1 class="hero-title">Supercharge Your Travel with Red+</h1>
+        <p class="hero-sub">Unlock 10x airasia points, free seat selection vouchers, priority baggage, and zero processing fees across all flight redemptions.</p>
+        <div class="hero-perks">
+          <span class="perk-pill">🔥 10x Points Multiplier</span>
+          <span class="perk-pill">✈️ Priority Boarding</span>
+          <span class="perk-pill">💺 Free Seat Vouchers</span>
+          <span class="perk-pill">🔒 2C2P PACO Secure Checkout</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Gateway Mode Banner -->
     <div class="mode-banner">
       <div class="mode-info">
         <div class="status-dot"></div>
-        <span>Active Gateway: <strong id="gatewayText" style="color: #38bdf8;">2C2P PACO RS256 Engine</strong></span>
-        <span style="color: var(--text-muted); font-size: 0.8rem;">(Mode: <code id="modeText">Silent RS256 Mode</code> | Partner ID: <code id="merchantIdText">PACO_PARTNER_DEMO</code>)</span>
+        <span>Gateway Mode: <strong id="modeText" style="color: var(--airasia-red);">Local Simulator</strong></span>
+        <span style="color: var(--text-dim); font-size: 0.85rem;">(Office ID: <code id="merchantIdText">AirAsiaRewards</code> | Partner API Key: <code>a89ffc44...</code>)</span>
       </div>
       <button class="mode-toggle-btn" onclick="toggleMode()">⚙️ Gateway Settings</button>
     </div>
 
     <!-- Store Panel -->
     <section id="panel-store" class="panel active">
-      <h2 class="panel-title">Explore Tech Gadgets</h2>
-      <p class="panel-sub">Select items and proceed directly to 2C2P secure payment page.</p>
+      <h2 class="panel-title">airasia rewards • Red+ Subscriptions & Deals</h2>
+      <p class="panel-sub">Select your Red+ subscription tier or points bundle to test silent 2C2P PACO v2.0 payment checkout.</p>
 
       <div class="products-grid" id="productsGrid">
         <!-- Dynamic products -->
       </div>
     </section>
 
+    <!-- RSA Keys Inspector Panel -->
+    <section id="panel-keys" class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 class="panel-title">🔑 RSA Cryptographic Keys & Verification Inspector</h2>
+          <p class="panel-sub">Live cryptographic hash inspection of all 6 RSA PEM keys required by 2C2P PACO v2.0.</p>
+        </div>
+        <button class="nav-btn" onclick="fetchKeysStatus()" style="background: var(--airasia-red); color: #fff;">🔄 Refresh Key Hashes</button>
+      </div>
+
+      <div class="key-grid" id="keysGrid">
+        <!-- Dynamic key status cards -->
+      </div>
+    </section>
+
     <!-- Orders Panel -->
     <section id="panel-orders" class="panel">
       <h2 class="panel-title">Orders & Webhook Status</h2>
-      <p class="panel-sub">Live status of orders processed via 2C2P webhooks.</p>
+      <p class="panel-sub">Live status of AirAsia Rewards Red+ orders processed via 2C2P webhooks.</p>
 
       <div id="ordersList" class="logs-container">
         <!-- Dynamic orders -->
@@ -67,10 +105,10 @@
 
     <!-- Inspector Panel -->
     <section id="panel-inspector" class="panel">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
         <div>
           <h2 class="panel-title">Live API Inspector & Payload Debugger</h2>
-          <p class="panel-sub">Inspect signed RS256 JWT payloads and response logs.</p>
+          <p class="panel-sub">Inspect signed PS256 JWT payloads and RSA-OAEP JWE ciphertext strings.</p>
         </div>
         <button class="nav-btn" onclick="clearLogs()">🗑️ Clear Logs</button>
       </div>
@@ -83,23 +121,22 @@
     <!-- Guide Panel -->
     <section id="panel-guide" class="panel">
       <h2 class="panel-title">2C2P PACO Gateway Integration Guide</h2>
-      <p class="panel-sub">Architectural walkthrough of silent 2C2P PACO checkout flows.</p>
+      <p class="panel-sub">Architectural walkthrough of silent 2C2P PACO v2.0 checkout flows for AirAsia Rewards.</p>
 
       <div class="log-card" style="margin-bottom: 1.5rem;">
-        <h3>⚡ Silent RS256 Signed Payment Request</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">
-          When customer clicks Proceed to Checkout, the backend signs the payment payload using RSA Private Key (`private.pem`) with algorithm `RS256`, calls 2C2P API, and silently redirects to the payment page.
+        <h3 style="color: var(--text-main); font-size: 1.2rem; margin-bottom: 0.5rem;">⚡ Silent Sign-Then-Encrypt Flow</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+          When customer clicks <strong>Proceed to Checkout</strong>, the backend signs the payment payload using <code>merchant_signing_private.pem</code> with algorithm <code>PS256</code>, encrypts the inner JWS using 2C2P's public key <code>2c2p_public_encryption.pem</code> with algorithm <code>RSA-OAEP</code>, and dispatches the JWE string over <code>Content-Type: application/jose</code> to 2C2P.
         </p>
         <pre class="code-block" style="color: #38bdf8;">
-// POST /paco/v1/hpp/session Payload (RS256 Signed)
+// POST /api/2.0/Payment/prePaymentUI Payload (PS256 JWS + RSA-OAEP JWE)
 const requestPayload = {
-  partnerId: 'PACO_PARTNER_DEMO',
-  externalReferenceId: 'PACO-TXN-REF-1001',
-  merchantReferenceNumber: 'INV-1001',
-  amount: 349.00,
-  currency: 'MYR',
-  paymentType: 'PACO_HOSTED_PAYMENT_PAGE',
-  signatureAlgorithm: 'RS256'
+  officeId: 'AirAsiaRewards',
+  orderNo: 'INV-1001',
+  productDescription: 'AirAsia Rewards Red+ Subscription Pass',
+  paymentCategory: 'ECOM',
+  paymentType: 'CC',
+  transactionAmount: { currencyCode: 'MYR', amount: 99.00 }
 };
         </pre>
       </div>
@@ -111,20 +148,20 @@ const requestPayload = {
   <div class="modal-overlay" id="cartModal">
     <div class="modal-drawer">
       <div class="drawer-header">
-        <h3 class="drawer-title">Shopping Cart</h3>
+        <h3 class="drawer-title">Red+ Order Summary</h3>
         <button class="close-btn" onclick="closeCart()">&times;</button>
       </div>
 
       <div class="cart-items-list" id="cartItemsList"></div>
 
       <div style="margin-bottom: 1rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Customer Name</label>
-        <input type="text" id="custName" value="Alex Tech" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+        <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 700;">Member Name</label>
+        <input type="text" id="custName" value="AirAsia Red+ Member" style="width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border-color); color: var(--text-main); border-radius: 8px; font-size: 0.95rem;">
       </div>
 
       <div style="margin-bottom: 1.5rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Customer Email</label>
-        <input type="email" id="custEmail" value="alex@example.com" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+        <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 700;">Member Email / AirAsia ID</label>
+        <input type="email" id="custEmail" value="member@airasia.com" style="width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border-color); color: var(--text-main); border-radius: 8px; font-size: 0.95rem;">
       </div>
 
       <div class="checkout-summary">
@@ -138,46 +175,46 @@ const requestPayload = {
         </div>
       </div>
 
-      <button class="checkout-btn" onclick="proceedToCheckout()" id="checkoutBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-        🔒 Proceed to Checkout
+      <button class="checkout-btn" onclick="proceedToCheckout()" id="checkoutBtn">
+        🔒 Pay with 2C2P PACO
       </button>
     </div>
   </div>
 
   <!-- Config Modal -->
   <div class="modal-overlay" id="configModal">
-    <div class="modal-drawer" style="max-width: 540px;">
+    <div class="modal-drawer" style="max-width: 560px;">
       <div class="drawer-header">
         <h3 class="drawer-title">2C2P PACO Gateway Settings</h3>
         <button class="close-btn" onclick="closeConfigModal()">&times;</button>
       </div>
 
-      <div style="margin-bottom: 1rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Environment Mode</label>
-        <select id="cfgMode" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
-          <option value="simulator">Local Payment Simulator</option>
-          <option value="sandbox">Live 2C2P PACO Gateway API</option>
+      <div style="margin-bottom: 1.25rem;">
+        <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 700;">Environment Mode</label>
+        <select id="cfgMode" style="width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border-color); color: var(--text-main); border-radius: 8px; font-size: 0.95rem;">
+          <option value="sandbox">Live 2C2P Gateway (Sandbox/UAT)</option>
+          <option value="simulator">Local Payment Simulator (Offline Test)</option>
         </select>
       </div>
 
-      <div style="margin-bottom: 1rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">PACO Partner / Merchant ID</label>
-        <input type="text" id="cfgMerchantId" placeholder="e.g. PACO_PARTNER_DEMO" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+      <div style="margin-bottom: 1.25rem;">
+        <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 700;">PACO Partner / Office ID</label>
+        <input type="text" id="cfgMerchantId" placeholder="e.g. AirAsiaRewards" style="width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border-color); color: var(--text-main); border-radius: 8px; font-size: 0.95rem;">
       </div>
 
       <div style="margin-bottom: 1.5rem;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">PACO Endpoint URL</label>
-        <input type="text" id="cfgPacoApiUrl" value="https://core.demo-paco.2c2p.com/paco/v1/hpp/session" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; border-radius: 6px;">
+        <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 700;">PACO Endpoint URL</label>
+        <input type="text" id="cfgPacoApiUrl" value="https://core.demo-paco.2c2p.com/api/2.0/Payment/prePaymentUI" style="width: 100%; padding: 12px; background: var(--bg-input); border: 2px solid var(--border-color); color: var(--text-main); border-radius: 8px; font-size: 0.95rem;">
       </div>
 
-      <button class="checkout-btn" style="background: var(--accent-primary);" onclick="saveConfig()">
+      <button class="checkout-btn" style="background: var(--airasia-red);" onclick="saveConfig()">
         💾 Save Settings
       </button>
     </div>
   </div>
 
   <footer>
-    <p>Nexus Gear Store • 2C2P PACO Secure Gateway</p>
+    <p>airasia rewards • 2C2P PACO Secure Gateway</p>
   </footer>
 
   <script src="app.js"></script>

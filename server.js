@@ -6,7 +6,7 @@ const dotenv = require('dotenv');
 const { v4: uuidv4 } = require('uuid');
 const TwoC2PService = require('./lib/2c2p');
 const PacoService = require('./lib/paco');
-const { getPrivateKey, getPublicKey, PRIVATE_KEY_PATH, PUBLIC_KEY_PATH } = require('./lib/keyManager');
+const { getPrivateKey, getPublicKey, getKeyDetails, PRIVATE_KEY_PATH, PUBLIC_KEY_PATH } = require('./lib/keyManager');
 
 dotenv.config();
 
@@ -92,6 +92,15 @@ app.post('/api/config', (req, res) => {
 
   logEvent('CONFIG_UPDATE', 'Gateway Configuration Updated', { currentConfig });
   res.json({ success: true, message: 'Configuration updated successfully', config: currentConfig });
+});
+
+app.get('/api/keys-status', (req, res) => {
+  try {
+    const keys = getKeyDetails();
+    res.json({ success: true, keys });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 2. Checkout API - Silently handles RS256 PEM signed request and returns direct redirect URL
@@ -272,10 +281,13 @@ app.post('/api/simulator/paco-submit-payment', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
   console.log(`\n==================================================`);
-  console.log(`🚀 2C2P PACO Silent RS256 Signed Gateway Server`);
-  console.log(`🔗 Local URL: http://localhost:3000`);
+  console.log(`🚀 2C2P PACO Silent Gateway Server Running`);
+  console.log(`🔗 Bound to: http://${HOST}:${PORT}`);
+  console.log(`🔗 Local Access: http://localhost:${PORT}`);
   console.log(`🔑 RSA Private Key: ${PRIVATE_KEY_PATH}`);
   console.log(`🔑 RSA Public Key:  ${PUBLIC_KEY_PATH}`);
   console.log(`==================================================\n`);
