@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchConfig();
   fetchOrders();
   fetchInspectorLogs();
-  fetchKeysStatus();
 
   setInterval(() => {
     fetchOrders();
@@ -54,8 +53,6 @@ function switchPanel(panelId) {
   if (activePanel) activePanel.classList.add('active');
 
   if (event?.currentTarget) event.currentTarget.classList.add('active');
-
-  if (panelId === 'keys') fetchKeysStatus();
 }
 
 /* Dynamic Hover Ambient Backdrop Handlers */

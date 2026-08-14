@@ -21,7 +21,6 @@
     <!-- Navigation Tabs -->
     <nav class="nav-links">
       <button class="nav-btn active" onclick="switchPanel('store')">🔴 Red+ Storefront</button>
-      <button class="nav-btn" onclick="switchPanel('keys')">🔑 RSA Keys Inspector</button>
       <button class="nav-btn" onclick="switchPanel('orders')">📋 Orders & Webhooks</button>
       <button class="nav-btn" onclick="switchPanel('inspector')">🔍 API Inspector</button>
       <button class="nav-btn" onclick="switchPanel('guide')">📖 Integration Guide</button>
@@ -74,21 +73,6 @@
 
       <div class="products-grid" id="productsGrid">
         <!-- Dynamic products -->
-      </div>
-    </section>
-
-    <!-- RSA Keys Inspector Panel -->
-    <section id="panel-keys" class="panel">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
-        <div>
-          <h2 class="panel-title">🔑 RSA Cryptographic Keys & Verification Inspector</h2>
-          <p class="panel-sub">Live cryptographic hash inspection of all 6 RSA PEM keys required by 2C2P PACO v2.0.</p>
-        </div>
-        <button class="nav-btn" onclick="fetchKeysStatus()" style="background: var(--airasia-red); color: #fff;">🔄 Refresh Key Hashes</button>
-      </div>
-
-      <div class="key-grid" id="keysGrid">
-        <!-- Dynamic key status cards -->
       </div>
     </section>
 
