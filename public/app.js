@@ -155,7 +155,7 @@ async function proceedToCheckout() {
 
   const btn = document.getElementById('checkoutBtn');
   btn.disabled = true;
-  btn.innerHTML = `⏳ Connecting to 2C2P Gateway...`;
+  btn.innerHTML = `Pay`;
 
   const custName = document.getElementById('custName').value;
   const custEmail = document.getElementById('custEmail').value;
@@ -180,7 +180,7 @@ async function proceedToCheckout() {
   } catch (err) {
     alert(`2C2P Checkout Error: ${err.message}`);
     btn.disabled = false;
-    btn.innerHTML = '🔒 Proceed to Checkout';
+    btn.innerHTML = 'Pay';
   }
 }
 

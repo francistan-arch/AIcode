@@ -777,6 +777,15 @@ main.container {
   transform: scale(0.97);
 }
 
+.checkout-btn:disabled {
+  background: #6b7280 !important;
+  color: #e5e7eb !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 0.65;
+}
+
 /* Panel Views */
 .panel { display: none; }
 .panel.active { display: block; }
