@@ -8,15 +8,18 @@ async function testLivePaco() {
   const paco = new PacoService({ mode: 'sandbox' });
 
   try {
+    const orderNo = `diagnose_${Date.now()}`;
     const result = await paco.createPaymentSession({
-      invoiceNo: `INV_TEST_${Date.now()}`,
-      description: 'Test AirAsia Purchase',
+      invoiceNo: orderNo,
+      description: 'AirAsia rewards Verification Handshake',
       amount: 50.50,
       currencyCode: 'THB'
     }, 'http://localhost:3000');
 
-    console.log('\n🎉 LIVE 2C2P PACO SANDBOX RESPONSE:');
-    console.log(JSON.stringify(result, null, 2));
+    console.log('\n🎉 LIVE 2C2P PACO SANDBOX SUCCESSFUL RESPONSE:');
+    console.log(`Payment Page URL: ${result.webPaymentUrl}`);
+    console.log('\nFull Decoded Response:');
+    console.log(JSON.stringify(result.decodedResponse, null, 2));
   } catch (err) {
     console.error('\n❌ LIVE TEST ERROR:');
     console.error(err.message);
